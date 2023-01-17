@@ -1,65 +1,97 @@
 import networkx as nx
 import random
+import csv
+import sys
 
-I = nx.fast_gnp_random_graph(15, 40, seed=None, directed=False)
+infected_nodes = []
+
+
+I = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
 for x in range(I.number_of_nodes()):
-  I.add_nodes_from([(x, {'state': 'susceptible', 'color': 'blue', 'ninfected': 0})])
+  I.add_nodes_from([(x, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0})])
 
 #valori iniziali
-pinitinf = 0.30
-ptrans = 0.10
-trec = 7
-tsus = 15
-cicles = 4
+p_init = 0.20
+p_trans = 0.05
+t_rec = 7
+t_sus = 15
+t_step = 20
+iterations = 4
 
-rstato = nx.get_node_attributes(I, "state")
-rtrecleft = nx.get_node_attributes(I, "trecleft")
-rtimmunity = nx.get_node_attributes(I, "timmunity")
-rninfected = nx.get_node_attributes(I, "timmunity")
+def read_state(node):
+    return nx.get_node_attributes(I, "state")[node]
+
+def read_recovery_time_left(node):
+    return nx.get_node_attributes(I, "recovery_time_left")[node]
+
+def read_immunity_time_left(node):
+    return nx.get_node_attributes(I, "immunity_time_left")[node]
+
+def read_count_infected(node):
+    return nx.get_node_attributes(I, "count_infected")[node]
 
 #funzione per infettare percentuale iniziale dei nodi:
 #prende come parametro percentuale, viene moltiplicata per il numero di nodi della rete e arrotondato
-#con un while, prima verifichiamo di non aver già infettato il nodo, quindi lo infettiamo e dimuniamo
+#con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo
 #numero di nodi ancora da infettare
 def infettainit(p):
     initinf = round(p*(I.number_of_nodes()),0)
     while initinf > 0:
         x = random.randint(0,I.number_of_nodes()-1)
-        if rstato[x]!='infected':
+        if read_state(x)!='infected':
             I.add_node(x, state='infected')
+            I.add_node(x, color='red')
+            I.add_node(x, recovery_time_left=t_rec)
             initinf -= 1
+            infected_nodes.append(x)
 
-infettainit(pinitinf)
-print(I.nodes.data())
+infettainit(p_init)
+for element in I.nodes.data() :
+    print(element)
+print("\n\n------------------------------------------------------------------------------------\n\n")
 
-for e in range(cicles):
-    for nodo in (I.nodes):
-        if rstato[nodo]=='infected':
-            for vicino in (I.adj[nodo]):
-                if rstato[vicino]=='susceptible' and round(random.uniform(0.00, 1.00), 2) <= ptrans:
-                    #se un nodo è infettato, prendiamo tutti i vicini infettabili (suscettibili)
-                    #prendiamo la probabilità di infezione e un numero random tra 0 e 1
-                    #se il numero è minore della probabilità di infezione, il vicino viene contagiato
-                    #quindi gli assegniamo il tempo di recupero e aumentiamo il count dei nodi infettati dal nodo
-                    I.add_node(vicino, state='infected')
-                    I.add_node(vicino, trecleft=trec + 1)
-                    I.add_node(nodo, ninfected=rninfected[nodo] + 1)
-    if rstato[nodo] == 'infected':
-        I.add_node(nodo, color='red') #coloriamo di rosso i nodi infetti
-        if rtrecleft[nodo] >= 1:
-            I.add_node(nodo, timmunity=rtrecleft[nodo]-1)
-            if rtrecleft[nodo] == 0:
-                I.add_node(nodo, state = 'recovered')
-                I.add_node(nodo, timmunity = tsus + 1)
-                I[nodo]['timmunity'] = tsus + 1
-    if rstato[nodo] == 'recovered':
-        I.add_node(nodo, color='green') #coloriamo di verde i nodi guariti
-        if rtimmunity[nodo] >= 1:
-            I.add_node(nodo, timmunity=rtimmunity[nodo]-1)
-            if rtimmunity[nodo] == 0:
-                I.add_node(nodo, state='susceptible')
-                I.add_node(nodo, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili
 
-print("dopo esecuzione")
-print(I.nodes.data())              
+#for e in range(iterations):
+for step in range(t_step):
+    
+    new_infected_nodes = []
+    print(infected_nodes)
+    copy_infected_nodes = infected_nodes.copy()
 
+    for node in (infected_nodes):
+        print("Sto lavorando con il nodo " + str(node))
+        print(infected_nodes)
+
+        for neighbor in (I.adj[node]):
+            if read_state(neighbor)=='susceptible' and round(random.uniform(0.00, 1.00), 2) <= p_trans:
+                #se un node è infettato, prendiamo tutti i vicini infettabili (suscettibili)
+                #prendiamo la probabilità di infezione e un numero random tra 0 e 1
+                #se il numero è minore della probabilità di infezione, il neighbor viene contagiato
+                #quindi gli assegniamo il tempo di recupero e aumentiamo il count dei nodi infettati dal node
+                I.add_node(neighbor, state='infected')
+                I.add_node(neighbor, recovery_time_left=(t_rec))
+                I.add_node(neighbor, color='red')
+                I.add_node(node, count_infected=(read_count_infected(node) + 1))
+                new_infected_nodes.append(neighbor)
+                
+        if read_recovery_time_left(node) >= 1:
+            I.add_node(node, recovery_time_left=(read_recovery_time_left(node)-1))
+            if read_recovery_time_left(node) == 0:
+                I.add_node(node, state = 'recovered')
+                I.add_node(node, immunity_time_left = (t_sus + 1))
+                copy_infected_nodes.remove(node)
+
+    for node in (I.nodes):
+        if read_state(node) == 'recovered':
+            I.add_node(node, color='green') #coloriamo di verde i nodi guariti
+            if read_immunity_time_left(node) >= 1:
+                I.add_node(node, immunity_time_left=(read_immunity_time_left(node)-1))
+                if read_immunity_time_left(node) == 0:
+                    I.add_node(node, state='susceptible')
+                    I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
+    
+    for element in I.nodes.data() :
+        print(element)
+    print("\n\n")
+
+    infected_nodes = copy_infected_nodes + new_infected_nodes

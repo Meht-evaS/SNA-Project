@@ -31,5 +31,5 @@ Il sistema dovrebbe consentire:
 - La configurazione dei parametri
 - L'avvio ed esecuzione di una o più simulazioni con gli stessi stati iniziali del nodo
 - La visualizzazione delle statistiche e metriche
-- La visualizzazione e una rappresentazione grafica del grafico prima, durante o alla fine della simulazione colorando i nodi in base al loro stato
+- La visualizzazione e una rappresentazione grafica del grafo prima, durante o alla fine della simulazione colorando i nodi in base al loro stato
 - Il candidato deve sviluppare una tecnica che, attraverso una serie di simulazioni casuali, permette di trovare e mostrare i nodi `super spreader` più rilevanti del grafo passato in input

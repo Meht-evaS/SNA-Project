@@ -2,7 +2,7 @@ import networkx as nx
 import random
 import matplotlib.pyplot as plt
 
-I = nx.fast_gnp_random_graph(20, 50, seed=None, directed=False)
+I = nx.fast_gnp_random_graph(200, 500, seed=None, directed=False)
 for x in range(I.number_of_nodes()):
   I.add_nodes_from([(x, {"state": "susceptible", "color": "blue", "ninfected": 0})])
 
