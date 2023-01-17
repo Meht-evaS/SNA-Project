@@ -9,7 +9,6 @@ grafo_csv = 'graph2.csv'
 G = ''
 G_type = ''
 
-
 errore_lettura_csv = 'Il file csv passato in input deve avere il seguente header:\t\tsource,target,type\n'
 errore_lettura_csv += 'Nella colonna type sono accettati solo i seguenti valori:\t\t"directed" o "undirected"'
 
@@ -58,16 +57,14 @@ with open(grafo_csv, encoding='utf8') as csv_file:
         sys.exit(errore + errore_lettura_csv)
 
 
-
-    num_row = 3
+    num_row = 2
     for row in csv_reader:
+        num_row += 1
         print(row)
         test_type(row[2], num_row)
         test_len(len(row), num_row)
 
         G.add_edge(row[0], row[1])
-
-        num_row += 1
 
 
 print('\n\n')
