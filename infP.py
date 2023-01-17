@@ -83,9 +83,15 @@ def read_count_infected(node):
 #con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo
 #numero di nodi ancora da infettare
 def infettainit(p):
+    print('1 -- I.number_of_nodes(): ' + str(I.number_of_nodes())) 
+    print(I)
+    print('Edge list:\n' + str(list(I.edges)) + '\n')
+    print('Node list:\n' + str(list(I.nodes)) + '\n')
+           
     initinf = round(p * (I.number_of_nodes()), 0)
     print('initinf: ' + str(initinf))
     while initinf > 0:
+        print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
         x = random.randint(0, I.number_of_nodes() - 1)
         print('x: ' + str(x))
         if read_state(x) != 'infected':
