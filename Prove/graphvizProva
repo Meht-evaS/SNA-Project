@@ -1,7 +1,7 @@
 import networkx as nx
 import pylab as plt
 from networkx.drawing.nx_agraph import graphviz_layout, to_agraph
-import graphviz as pgv
+import pygraphviz as pgv
 
 G = nx.DiGraph()
 G.add_node("A",rank=0)
