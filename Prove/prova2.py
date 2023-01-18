@@ -1,12 +1,13 @@
 import networkx as nx
 import random
+import math
 import matplotlib.pyplot as plt
 
 I = nx.fast_gnp_random_graph(200, 500, seed=None, directed=False)
 for x in range(I.number_of_nodes()):
   I.add_nodes_from([(x, {"state": "susceptible", "color": "blue", "ninfected": 0})])
 
-pos = nx.spring_layout(I, seed=3113794652)
+pos = nx.spring_layout(I, k=50/math.sqrt(I.order()), seed=3113794652)
 options = {"edgecolors": "tab:gray", "node_size": 800, "alpha": 0.9}
 nx.draw_networkx_nodes(I, pos, nodelist=list(I.nodes), node_color="tab:red", **options)
 edlabels = nx.get_edge_attributes(I,'weight')

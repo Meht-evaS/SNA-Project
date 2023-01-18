@@ -79,8 +79,8 @@ def read_count_infected(node):
 #################################################################
 
 #funzione per infettare percentuale iniziale dei nodi:
-#prende come parametro percentuale, viene moltiplicata per il numero di nodi della rete e arrotondato
-#con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo
+#prende come parametro percentuale, viene moltiplicata per il numero di nodi della rete e arrotondato.
+#con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo il
 #numero di nodi ancora da infettare
 def infettainit(p):
     print('1 -- I.number_of_nodes(): ' + str(I.number_of_nodes())) 
