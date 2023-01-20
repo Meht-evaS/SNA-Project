@@ -12,3 +12,4 @@ source,target,type
 4,6,undirected
 4,3,undirected
 6,5,undirected
+6,6,undirected

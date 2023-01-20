@@ -201,6 +201,8 @@ with open(grafo_csv, encoding='utf8') as csv_file:
             print("Si è verificato un errore imprevisto durante l'aggiunta degli archi al grafo: " + str(ex))
         '''
 
+    I.remove_edges_from(nx.selfloop_edges(I)) # rimuovo i self loop
+
     if (len(warnings) > 0):
         print('\n\nWARNING:')
         for warning in warnings:
