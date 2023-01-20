@@ -3,3 +3,12 @@ source,target,type
 0,2,undirected
 0,3,undirected
 2,0,undirected
+2,a,undirected
+4,b,undirected
+1,2,undirected
+5,3,undirected
+5,1,undirected
+4,2,undirected
+4,6,undirected
+4,3,undirected
+6,5,undirected

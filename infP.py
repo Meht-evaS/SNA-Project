@@ -24,7 +24,7 @@ errore_lettura_csv += 'Nella colonna type sono accettati solo i seguenti valori:
 #valori iniziali
 grafo_csv = 'graph2.csv'
 p_init = 0.20
-p_trans = 0.05
+p_trans = 0.10
 t_rec = 7
 t_sus = 15
 t_step = 20
@@ -37,6 +37,11 @@ iterations = 4
 #                FUNZIONI CONTROLLO CSV DI INPUT                #
 #                                                               #
 #################################################################
+
+def test_header():
+    if (csv_header[0] != 'source' or csv_header[1] != 'target' or csv_header[2] != 'type'):
+        errore = 'Errore lettura file ' + grafo_csv + ': header non corretto!\n\n'
+        sys.exit(errore + errore_lettura_csv)
 
 def test_type(edge_type, num_row):
     if (edge_type != 'directed' and edge_type != 'undirected'):
@@ -52,6 +57,17 @@ def test_len(len_row, num_row):
         errore = 'Errore lettura file ' + grafo_csv + ': alla riga ' + str(num_row) + ' mancano dei parametri indispensabili!\n\n'
         sys.exit(errore)
 
+def test_and_add_edge(csv_type, num_row, warnings):
+    try:
+        I.add_edge(int(csv_type[0]), int(csv_type[1]))
+        #print("Aggiunto arco riga " + str(num_row) + ", da nodo " + csv_type[0] + " a nodo " + csv_type[1])
+    except ValueError as ve:
+        errore = 'Riga ' + str(num_row) + ' del file ' + grafo_csv + ": l'ID del nodo 'source' o 'target' non è un numero intero!"
+        warnings.append(errore)
+    except Exception as ex:
+        print("Si è verificato un errore imprevisto durante l'aggiunta degli archi al grafo: " + str(ex))
+    finally:
+        return warnings
 
 #################################################################
 #                                                               #
@@ -93,7 +109,8 @@ def infettainit(p):
     while initinf > 0:
         print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
         x = random.randint(0, I.number_of_nodes() - 1)
-        print('x: ' + str(x))
+        print('x: ' + str(x) + '\n\n')
+
         if read_state(x) != 'infected':
             I.add_node(x, state='infected')
             I.add_node(x, color='red')
@@ -113,14 +130,14 @@ def infettainit(p):
 
 
 with open(grafo_csv, encoding='utf8') as csv_file:
+    warnings = []
+
     csv_reader = csv.reader(csv_file, delimiter=',')
 
     csv_header = next(csv_reader)
     print(str(csv_header) + '\n\n')
 
-    if (csv_header[0] != 'source' or csv_header[1] != 'target' or csv_header[2] != 'type'):
-        errore = 'Errore lettura file ' + grafo_csv + ': header non corretto!\n\n'
-        sys.exit(errore + errore_lettura_csv)
+    test_header() # Controllo se header CSV corretto, altrimento interruzione programma
 
     csv_type = next(csv_reader)
     print(csv_type[2] + '\n\n')
@@ -129,12 +146,36 @@ with open(grafo_csv, encoding='utf8') as csv_file:
     if (csv_type[2] == 'directed'):
         I = nx.DiGraph()
         I_type = 'directed'
-        I.add_edge(csv_type[0], csv_type[1])
+
+        warnings = test_and_add_edge(csv_type, 2, warnings) 
+        '''
+        try:
+            I.add_edge(int(csv_type[0]), int(csv_type[1]))
+        except ValueError as ve:
+            errore = 'Riga 2 del file ' + grafo_csv + ": l'ID del nodo 'source' o 'target' non è un numero intero!\n"
+            warnings.append(errore)
+        except Exception as ex:
+            print("Si è verificato un errore imprevisto durante l'aggiunta degli archi al grafo: " + str(ex))
+        '''
+
+
 
     elif (csv_type[2] == 'undirected'):
         I = nx.Graph()
         I_type = 'undirected'
-        I.add_edge(csv_type[0], csv_type[1])
+
+        warnings = test_and_add_edge(csv_type, 2, warnings) 
+
+        '''
+        try:
+            I.add_edge(int(csv_type[0]), int(csv_type[1]))
+        except ValueError as ve:
+            errore = 'Riga 2 del file ' + grafo_csv + ": l'ID del nodo 'source' o 'target' non è un numero intero!\n"
+            warnings.append(errore)
+        except Exception as ex:
+            print("Si è verificato un errore imprevisto durante l'aggiunta degli archi al grafo: " + str(ex))
+        '''
+
 
     else:
         errore = 'Errore lettura file ' + grafo_csv + ': valore colonna "type" = "' + csv_type[2] + '", riga 2, non corretto!\n\n'
@@ -148,15 +189,30 @@ with open(grafo_csv, encoding='utf8') as csv_file:
         test_type(row[2], num_row)
         test_len(len(row), num_row)
 
-        I.add_edge(row[0], row[1])
+        warnings = test_and_add_edge(row, num_row, warnings) 
+
+        '''
+        try:
+            I.add_edge(int(row[0]), int(row[1]))
+        except ValueError as ve:
+            errore = 'Riga ' + str(num_row) + ' del file ' + grafo_csv + ": l'ID del nodo 'source' o 'target' non è un numero intero ... arco non aggiunto al grafo!\n"
+            warnings.append(errore)
+        except Exception as ex:
+            print("Si è verificato un errore imprevisto durante l'aggiunta degli archi al grafo: " + str(ex))
+        '''
+
+    if (len(warnings) > 0):
+        print('\n\nWARNING:')
+        for warning in warnings:
+            print(warning)
+        
+        print('\n\n')
 
 
 print('\n\n')
 print('Edge list:\n' + str(list(I.edges)) + '\n')
 print('Node list:\n' + str(list(I.nodes)) + '\n')
 print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
-
-
 
 
 
@@ -223,3 +279,4 @@ for step in range(t_step):
     print("\n\n")
 
     infected_nodes = copy_infected_nodes + new_infected_nodes
+
