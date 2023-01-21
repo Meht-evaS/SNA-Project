@@ -2,6 +2,8 @@ import networkx as nx
 import random
 import csv
 import sys
+import matplotlib.pyplot as plt
+from math import log
 
 from operator import itemgetter
 
@@ -301,4 +303,21 @@ for step in range(t_step):
 
     infected_nodes = copy_infected_nodes + new_infected_nodes
 
-print(statistics_graph)
+#print(statistics_graph)
+
+#Creiamo una lista per il tempo, lunga quanto le statistiche (quindi uguale a t_step)
+time = [i for i in range(len(statistics_graph))]
+
+#Spacchetta tuple e fa plot dei 3 valori
+y1, y2, y3 = zip(*statistics_graph)
+plt.plot(time, y1, label="S", color='b')
+plt.plot(time, y2, label="I", color='r')
+plt.plot(time, y3, label="R", color='g')
+
+#Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
+plt.xlabel('Time Step')
+plt.ylabel('Nodes')
+plt.title('SIR Model - Disease Trends')
+plt.legend()
+
+plt.show()
