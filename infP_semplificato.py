@@ -3,6 +3,8 @@ import random
 import csv
 import sys
 
+from operator import itemgetter
+
 
 #################################################################
 #                                                               #
@@ -14,19 +16,23 @@ I = nx.Graph()
 
 header = ['source','target']
 infected_nodes = []
+statistics_graph = []
+max_spreader = []
 
 errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente header:\t\t' + header[0] + ',' + header[1] + ' [, ...]\n'
 
 #grafo_csv = input("Inserisci il nome del file csv da leggere: ")
 
 #valori iniziali
-grafo_csv = 'graph2.csv'
-p_init = 0.20
+#grafo_csv = 'Prove_mod_cris\graph.csv'
+grafo_csv = 'graph3.csv'
+p_init = 0.05
 p_trans = 0.10
-t_rec = 7
-t_sus = 15
-t_step = 20
+t_rec = 3
+t_sus = 7
+t_step = 30
 iterations = 4
+
 
 
 
@@ -48,6 +54,7 @@ def test_len(len_row, num_row):
 
 def test_and_add_edge(row, num_row, warnings):
     try:
+        test_len(len(row), num_row)
         I.add_edge(int(row[0]), int(row[1]))
         #print("Aggiunto arco riga " + str(num_row) + ", da nodo " + row[0] + " a nodo " + row[1])
     except ValueError as ve:
@@ -76,6 +83,17 @@ def read_immunity_time_left(node):
 def read_count_infected(node):
     return nx.get_node_attributes(I, "count_infected")[node]
 
+def read_temporary_count_infected(node):
+    return nx.get_node_attributes(I, "temporary_count_infected")[node]
+
+def read_neighbor_infected(node):
+    return nx.get_node_attributes(I, "neighbor_infected")[node]
+
+def print_stats(sus, inf, rec):
+    print('Susceptible: ' + str(sus))
+    print('Infected: ' + str(inf))
+    print('Recovered: ' + str(rec))
+
 
 #################################################################
 #                                                               #
@@ -88,17 +106,22 @@ def read_count_infected(node):
 #con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo il
 #numero di nodi ancora da infettare
 def infettainit(p):
-    print('1 -- I.number_of_nodes(): ' + str(I.number_of_nodes())) 
+
+    '''print('1 -- I.number_of_nodes(): ' + str(I.number_of_nodes())) 
     print(I)
     print('Edge list:\n' + str(list(I.edges)) + '\n')
-    print('Node list:\n' + str(list(I.nodes)) + '\n')
+    print('Node list:\n' + str(list(I.nodes)) + '\n')'''
            
     initinf = round(p * (I.number_of_nodes()), 0)
-    print('initinf: ' + str(initinf))
+    print('Susceptible: ' + str(I.number_of_nodes()-initinf))
+    print('Infected: ' + str(initinf))
+    print('Recovered: 0')
+    st_tuple = (I.number_of_nodes()-initinf, initinf, 0)
+    statistics_graph.append(st_tuple)
     while initinf > 0:
-        print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
+        #print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
         x = random.randint(0, I.number_of_nodes() - 1)
-        print('x: ' + str(x) + '\n\n')
+        #print('x: ' + str(x) + '\n\n')
 
         if read_state(x) != 'infected':
             I.add_node(x, state='infected')
@@ -140,7 +163,6 @@ with open(grafo_csv, encoding='utf8') as csv_file:
     for row in csv_reader:
         num_row += 1
         print(row)
-        test_len(len(row), num_row)
 
         warnings = test_and_add_edge(row, num_row, warnings) 
 
@@ -170,26 +192,37 @@ print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
 
 # I = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
 
-for x in range(I.number_of_nodes()):
-    I.add_nodes_from([(x, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0})])
+for node in (I.nodes):
+    '''lst = []
+    for i in range(t_step):
+        lst.append([])'''
+
+    #I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'neighbor_infected': lst})])
+    I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0})])
+
+    
+
 
 infettainit(p_init)
 
-for element in I.nodes.data() :
-    print(element)
+'''for element in I.nodes.data() :
+    print(element)'''
 
 print("\n\n------------------------------------------------------------------------------------\n\n")
 
+#sys.exit()
 
 #for e in range(iterations):
 for step in range(t_step):
-    
+    print(str(step))
     new_infected_nodes = []
-    print(infected_nodes)
+    #print(infected_nodes)
+    random.shuffle(infected_nodes)
+    #print(infected_nodes)
     copy_infected_nodes = infected_nodes.copy()
 
     for node in (infected_nodes):
-        print("Sto lavorando con il nodo " + str(node))
+        #print("Sto lavorando con il nodo " + str(node))
         #print(infected_nodes)
 
         for neighbor in (I.adj[node]):
@@ -202,6 +235,13 @@ for step in range(t_step):
                 I.add_node(neighbor, recovery_time_left=(t_rec))
                 I.add_node(neighbor, color='red')
                 I.add_node(node, count_infected=(read_count_infected(node) + 1))
+                I.add_node(node, temporary_count_infected=(read_temporary_count_infected(node) + 1))
+                
+                '''ninf=read_neighbor_infected(node)
+                ninf[step].append(neighbor)
+                print(ninf)
+                I.add_node(node, neighbor_infected=ninf)'''
+
                 new_infected_nodes.append(neighbor)
                 
         if read_recovery_time_left(node) >= 1:
@@ -211,6 +251,14 @@ for step in range(t_step):
                 I.add_node(node, immunity_time_left = (t_sus + 1))
                 copy_infected_nodes.remove(node)
 
+    statistics = {
+        "susceptible": 0,
+        "recovered": 0,
+        "infected": 0
+    }
+
+    turn_spreader = []
+
     for node in (I.nodes):
         if read_state(node) == 'recovered':
             I.add_node(node, color='green') #coloriamo di verde i nodi guariti
@@ -219,10 +267,38 @@ for step in range(t_step):
                 if read_immunity_time_left(node) == 0:
                     I.add_node(node, state='susceptible')
                     I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
-    
-    for element in I.nodes.data() :
-        print(element)
+        
+        statistics[read_state(node)]+=1
+        #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
+        if read_temporary_count_infected(node)>0:
+            turn_spreader.append((node, read_temporary_count_infected(node)))    
+            I.add_node(node, temporary_count_infected=0)
+
+    #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
+    turn_spreader.sort(key=lambda a: a[1], reverse=True)
+
+    if len(turn_spreader)>3:
+        t_tuple = []
+        for i in range(3):
+            t_tuple.append(turn_spreader[i])
+        max_spreader.append(t_tuple)
+        print(max_spreader)
+    else:
+        max_spreader.append(turn_spreader)
+        print(max_spreader)
+
+    '''for element in I.nodes.data() :
+        print(element)'''
+    #print("\n\n")
+    st_susceptible = statistics['susceptible']
+    st_infected = statistics['infected']
+    st_recovered = statistics['recovered']
+
+    print_stats(st_susceptible,st_infected, st_recovered)
+    st_tuple = (st_susceptible, st_infected, st_recovered)
+    statistics_graph.append(st_tuple)
     print("\n\n")
 
     infected_nodes = copy_infected_nodes + new_infected_nodes
 
+print(statistics_graph)
