@@ -38,7 +38,7 @@ iterations = 4
 #                                                               #
 #################################################################
 
-def test_header():
+def test_header(csv_header):
     if (csv_header[0] != 'source' or csv_header[1] != 'target' or csv_header[2] != 'type'):
         errore = 'Errore lettura file ' + grafo_csv + ': header non corretto!\n\n'
         sys.exit(errore + errore_lettura_csv)
@@ -57,10 +57,10 @@ def test_len(len_row, num_row):
         errore = 'Errore lettura file ' + grafo_csv + ': alla riga ' + str(num_row) + ' mancano dei parametri indispensabili!\n\n'
         sys.exit(errore)
 
-def test_and_add_edge(csv_type, num_row, warnings):
+def test_and_add_edge(row, num_row, warnings):
     try:
-        I.add_edge(int(csv_type[0]), int(csv_type[1]))
-        #print("Aggiunto arco riga " + str(num_row) + ", da nodo " + csv_type[0] + " a nodo " + csv_type[1])
+        I.add_edge(int(row[0]), int(row[1]))
+        #print("Aggiunto arco riga " + str(num_row) + ", da nodo " + row[0] + " a nodo " + row[1])
     except ValueError as ve:
         errore = 'Riga ' + str(num_row) + ' del file ' + grafo_csv + ": l'ID del nodo 'source' o 'target' non è un numero intero!"
         warnings.append(errore)
@@ -137,7 +137,7 @@ with open(grafo_csv, encoding='utf8') as csv_file:
     csv_header = next(csv_reader)
     print(str(csv_header) + '\n\n')
 
-    test_header() # Controllo se header CSV corretto, altrimento interruzione programma
+    test_header(csv_header) # Controllo se header CSV corretto, altrimento interruzione programma
 
     csv_type = next(csv_reader)
     print(csv_type[2] + '\n\n')

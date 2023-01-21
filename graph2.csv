@@ -1,5 +1,5 @@
 source,target,type
-0,1,undirected
+0,1,directed
 0,2,undirected
 0,3,undirected
 2,0,undirected
