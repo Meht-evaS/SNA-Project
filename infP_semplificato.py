@@ -277,9 +277,9 @@ for step in range(t_step):
     #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
     turn_spreader.sort(key=lambda a: a[1], reverse=True)
 
-    if len(turn_spreader)>3:
+    if len(turn_spreader)>=4:
         t_tuple = []
-        for i in range(3):
+        for i in range(4):
             t_tuple.append(turn_spreader[i])
         max_spreader.append(t_tuple)
         print(max_spreader)
