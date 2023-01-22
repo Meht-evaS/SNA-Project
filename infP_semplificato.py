@@ -284,10 +284,26 @@ for step in range(t_step):
     #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
     turn_spreader.sort(key=lambda a: a[1], reverse=True)
 
+    #Per come è scritta ora vengono appese anche delle liste vuote se sul turno non si contagia nessuno
     if len(turn_spreader) >= 4:
         t_tuple = []
+
         for i in range(4):
             t_tuple.append(turn_spreader[i])
+        
+        '''
+        count_diff_value = 0
+        i = 0
+        prev_val = -1
+        while (count_diff_value < 4 or i < (len(turn_spreader) - 1)):
+            val = turn_spreader[i][1]
+            if (val != prev_val):
+                count_diff_value += 1
+                tmp_val = val
+            t_tuple.append(turn_spreader[i])
+            i += 1
+        '''
+
         max_spreader.append(t_tuple)
         print(max_spreader)
     else:
