@@ -119,7 +119,7 @@ def infettainit(p):
     print('Edge list:\n' + str(list(I.edges)) + '\n')
     print('Node list:\n' + str(list(I.nodes)) + '\n')'''
            
-    initinf = round(p * (I.number_of_nodes()), 0)
+    initinf = int(round(p * (I.number_of_nodes()), 0))
     print('Susceptible: ' + str(I.number_of_nodes()-initinf))
     print('Infected: ' + str(initinf))
     print('Recovered: 0')
@@ -127,7 +127,7 @@ def infettainit(p):
     statistics_graph.append(st_tuple)
     while initinf > 0:
         #print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
-        x = random.randint(0, I.number_of_nodes() - 1)
+        x = random.choice(list(I.nodes))
         #print('x: ' + str(x) + '\n\n')
 
         if read_state(x) != 'infected':
@@ -135,7 +135,7 @@ def infettainit(p):
             I.add_node(x, color='red')
             I.add_node(x, recovery_time_left=t_rec)
             initinf -= 1
-            infected_nodes.append(x)
+            infected_nodes.append(x) 
 
 
 
@@ -275,16 +275,16 @@ for step in range(t_step):
                     I.add_node(node, state='susceptible')
                     I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
         
-        statistics[read_state(node)]+=1
+        statistics[read_state(node)] += 1
         #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
-        if read_temporary_count_infected(node)>0:
+        if read_temporary_count_infected(node) > 0:
             turn_spreader.append((node, read_temporary_count_infected(node)))    
             I.add_node(node, temporary_count_infected=0)
 
     #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
     turn_spreader.sort(key=lambda a: a[1], reverse=True)
 
-    if len(turn_spreader)>=4:
+    if len(turn_spreader) >= 4:
         t_tuple = []
         for i in range(4):
             t_tuple.append(turn_spreader[i])
