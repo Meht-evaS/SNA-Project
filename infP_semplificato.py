@@ -2,7 +2,12 @@ import networkx as nx
 import random
 import csv
 import sys
+
+# Rendering curve tramite interpolazione 
+import numpy as np
+from scipy.interpolate import make_interp_spline # pip install scipy
 import matplotlib.pyplot as plt
+
 from math import log
 
 from operator import itemgetter
@@ -32,7 +37,7 @@ p_init = 0.05
 p_trans = 0.10
 t_rec = 3
 t_sus = 7
-t_step = 30
+t_step = 20
 iterations = 4
 
 
@@ -194,7 +199,7 @@ print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
 
 # I = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
 
-for node in (I.nodes):
+for node in (I.nodes): 
     '''lst = []
     for i in range(t_step):
         lst.append([])'''
@@ -309,10 +314,35 @@ for step in range(t_step):
 time = [i for i in range(len(statistics_graph))]
 
 #Spacchetta tuple e fa plot dei 3 valori
+
 y1, y2, y3 = zip(*statistics_graph)
+
+'''
+# Plot senza interpolazione
 plt.plot(time, y1, label="S", color='b')
 plt.plot(time, y2, label="I", color='r')
 plt.plot(time, y3, label="R", color='g')
+'''
+
+time = np.array(time)
+y1 = np.array(y1)
+y2 = np.array(y2)
+y3 = np.array(y3)
+
+time_y1_spline = make_interp_spline(time, y1)
+time_y2_spline = make_interp_spline(time, y2)
+time_y3_spline = make_interp_spline(time, y3)
+ 
+# Returns evenly spaced numbers over a specified interval
+pl_time = np.linspace(time.min(), time.max(), 500)
+pl_y1 = time_y1_spline(pl_time)
+pl_y2 = time_y2_spline(pl_time)
+pl_y3 = time_y3_spline(pl_time)
+
+# Plotting the Graph
+plt.plot(pl_time, pl_y1, label="S", color='b')
+plt.plot(pl_time, pl_y2, label="I", color='r')
+plt.plot(pl_time, pl_y3, label="R", color='g')
 
 #Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
 plt.xlabel('Time Step')
