@@ -32,9 +32,9 @@ errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente
 
 #valori iniziali
 #grafo_csv = 'Prove_mod_cris\graph.csv'
-grafo_csv = 'graph3.csv'
-p_init = 0.05
-p_trans = 0.10
+grafo_csv = 'graph4.csv'
+p_init = 0.10
+p_trans = 0.15
 t_rec = 3
 t_sus = 7
 t_step = 20
@@ -120,6 +120,8 @@ def infettainit(p):
     print('Node list:\n' + str(list(I.nodes)) + '\n')'''
            
     initinf = int(round(p * (I.number_of_nodes()), 0))
+    print('initinf = ' + str(initinf) + '  ,  int(initinf) = ' + str(int(initinf)) + '\n')
+
     print('Susceptible: ' + str(I.number_of_nodes()-initinf))
     print('Infected: ' + str(initinf))
     print('Recovered: 0')
@@ -139,7 +141,33 @@ def infettainit(p):
 
 
 
+#################################################################
+#                                                               #
+#          FUNZIONE CALCOLO INFETTATI DI SECONDO GRADO          #
+#                                                               #
+#################################################################
 
+def calc_infected_neighbors():
+    result = []
+    for node in I.nodes :
+        time_step = 0
+        counter_infected = 0
+
+        for element_t in read_neighbor_infected(node):
+            time_step += 1
+
+            for neighbor in element_t:
+                counter_infected += 1
+                start_time_step = time_step
+                stop_time_step = start_time_step + t_rec
+
+                for neighbor_time_step in range(start_time_step, stop_time_step):
+                    counter_infected += len(read_neighbor_infected(neighbor)[neighbor_time_step])
+
+        value = (node, counter_infected)
+        result.append(value)
+
+    return result
 
 #################################################################
 #                                                               #
@@ -200,13 +228,11 @@ print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
 # I = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
 
 for node in (I.nodes): 
-    '''lst = []
+    lst = []
     for i in range(t_step):
-        lst.append([])'''
+        lst.append([])
 
-    #I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'neighbor_infected': lst})])
-    I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0})])
-
+    I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0, 'neighbor_infected': lst})])
     
 
 
@@ -244,10 +270,11 @@ for step in range(t_step):
                 I.add_node(node, count_infected=(read_count_infected(node) + 1))
                 I.add_node(node, temporary_count_infected=(read_temporary_count_infected(node) + 1))
                 
-                '''ninf=read_neighbor_infected(node)
+                ninf = read_neighbor_infected(node)
                 ninf[step].append(neighbor)
+                print('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
                 print(ninf)
-                I.add_node(node, neighbor_infected=ninf)'''
+                I.add_node(node, neighbor_infected=ninf)
 
                 new_infected_nodes.append(neighbor)
                 
@@ -365,5 +392,11 @@ plt.xlabel('Time Step')
 plt.ylabel('Nodes')
 plt.title('SIR Model - Disease Trends')
 plt.legend()
+
+
+max_spreader_secondo_grado = calc_infected_neighbors() 
+#print('\n\n' + str(max_spreader_secondo_grado))
+max_spreader_secondo_grado.sort(key=lambda a: a[1], reverse=True)
+print('\n\n' + str(max_spreader_secondo_grado))
 
 plt.show()
