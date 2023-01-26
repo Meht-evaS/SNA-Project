@@ -34,9 +34,8 @@ Il sistema dovrebbe consentire:
 - La visualizzazione e una rappresentazione grafica del grafo prima, durante o alla fine della simulazione colorando i nodi in base al loro stato
 - Il candidato deve sviluppare una tecnica che, attraverso una serie di simulazioni casuali, permette di trovare e mostrare i nodi `super spreader` più rilevanti del grafo passato in input
 
-## ToDo
-- Inserisci funzione che stampi ad ogni ciclo numero S, I e R (picchi nodi infetti)
-- Grafico delle statistiche raccolte punto precedente
+## TODO
+- Inserisci funzione che stampi ad ogni ciclo il grafo con tutti i nodi e i relativi stati rappresentati dal colore di riempimento dei nodi
 
 ## Tips
 - Tracciare evoluzione temporanea del virus e nel mentre identificare quali sono i nodi con il numero più alto di infetti ad ogni time step. Questi nodi dovrebbero essere i più impattanti nello spreading dell'epidemia e possono essere considerati super spreader.
