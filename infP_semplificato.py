@@ -1,16 +1,99 @@
-import networkx as nx
+import networkx as nx  # pip3 install networkx
+import pygraphviz as pgv  # sudo apt-get install graphviz graphviz-dev
+import pydot  # pip3 install pydot
 import random
 import csv
 import sys
+import os
+
+from datetime import datetime
 
 # Rendering curve tramite interpolazione 
-import numpy as np
-from scipy.interpolate import make_interp_spline # pip install scipy
-import matplotlib.pyplot as plt
+import numpy as np  # pip3 install numpy
+from scipy.interpolate import make_interp_spline # pip3 install scipy
+import matplotlib.pyplot as plt  # pip3 install matplotlib
+                                 # Se in esecuzione codice genera errori: sudo apt-get install python3-tk
 
 from math import log
-
 from operator import itemgetter
+
+
+
+#################################################################
+#                                                               #
+# OVERRIDE FUNZIONE DI CONVERSIONE GRAFI NETWORKX IN PYGRAPHVIZ #
+#                                                               #
+#################################################################
+
+'''
+Ne facciamo l'override in quanto abbiamo dovuto aggiungere i seguenti attributi:
+    - Attributi del grafo:
+        - overlap='false' :
+            - Permette di non avere l'overlap dei nodi
+        - node_attr['style']='filled' :
+            - Permette di riempire il corpo dei nodi con un colore
+    - Attributi dei nodi:
+        - attr['fillcolor']=colore :
+            - Permette di specificare il colore con cui riempire il corpo del nodo
+'''
+
+def my_version_to_agraph(N):
+    try:
+        import pygraphviz
+    except ImportError as err:
+        raise ImportError(
+            "requires pygraphviz " "http://pygraphviz.github.io/"
+        ) from err
+    directed = N.is_directed()
+    strict = nx.number_of_selfloops(N) == 0 and not N.is_multigraph()
+    A = pygraphviz.AGraph(name=N.name, strict=strict, directed=directed, overlap='false')
+
+    # default graph attributes
+    A.graph_attr.update(N.graph.get("graph", {}))
+    A.node_attr.update(N.graph.get("node", {}))
+    A.edge_attr.update(N.graph.get("edge", {}))
+
+    A.graph_attr.update(
+        (k, v) for k, v in N.graph.items() if k not in ("graph", "node", "edge")
+    )
+
+    # add nodes
+    for n, nodedata in N.nodes(data=True):
+        A.node_attr['style']='filled'
+        #A.node_attr['fillcolor']="black"  #Da un unico colore a tutti i nodi
+
+        A.add_node(n)
+        # Add node data
+        a = A.get_node(n)
+        #a.attr.update({k: str(v) for k, v in nodedata.items()})
+        
+        print('nodedata.items() : ' + str(nodedata.items()))
+        for k, v in nodedata.items():
+            a.attr.update({k: str(v)})
+            #print(str(k) + ' : ' + str(v))
+            if str(k) == 'color':
+                a.attr['fillcolor']=str(v)
+
+    # loop over edges
+    if N.is_multigraph():
+        for u, v, key, edgedata in N.edges(data=True, keys=True):
+            str_edgedata = {k: str(v) for k, v in edgedata.items() if k != "key"}
+            A.add_edge(u, v, key=str(key))
+            # Add edge data
+            a = A.get_edge(u, v)
+            a.attr.update(str_edgedata)
+
+    else:
+        for u, v, edgedata in N.edges(data=True):
+            str_edgedata = {k: str(v) for k, v in edgedata.items()}
+            A.add_edge(u, v)
+            # Add edge data
+            a = A.get_edge(u, v)
+            a.attr.update(str_edgedata)
+
+    return A
+
+
 
 
 #################################################################
@@ -32,14 +115,36 @@ errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente
 
 #valori iniziali
 #grafo_csv = 'Prove_mod_cris\graph.csv'
-grafo_csv = 'graph4.csv'
+grafo_csv = 'graph3.csv'
 p_init = 0.10
 p_trans = 0.15
 t_rec = 3
 t_sus = 7
-t_step = 20
+t_step = 5
 iterations = 4
 
+
+dir_output_grafici = 'Grafici'
+path_grafico_attuale = ''
+
+try:
+    try:
+        os.mkdir(dir_output_grafici)
+    except FileExistsError as error:
+        pass
+    except OSError as error:
+        sys.exit('Si è verificato un errore: ' + str(error))
+
+    now = datetime.now()
+    current_time = now.strftime("%Y-%m-%d_%H:%M:%S")
+
+    path_grafico_attuale = dir_output_grafici + '/' + current_time
+    os.mkdir(path_grafico_attuale)
+
+except FileExistsError:
+    pass
+except Exception as error:
+    sys.exit('Si è verificato un errore: ' + str(error))
 
 
 
@@ -162,6 +267,10 @@ def calc_infected_neighbors():
                 stop_time_step = start_time_step + t_rec
 
                 for neighbor_time_step in range(start_time_step, stop_time_step):
+                    if stop_time_step > t_step:
+                        break
+                    print('neighbor:' + str(neighbor) + '   --   neighbor_time_step: ' + str(neighbor_time_step))
+                    print('read_neighbor_infected(neighbor): ' + str(read_neighbor_infected(neighbor)))
                     counter_infected += len(read_neighbor_infected(neighbor)[neighbor_time_step])
 
         value = (node, counter_infected)
@@ -398,5 +507,13 @@ max_spreader_secondo_grado = calc_infected_neighbors()
 #print('\n\n' + str(max_spreader_secondo_grado))
 max_spreader_secondo_grado.sort(key=lambda a: a[1], reverse=True)
 print('\n\n' + str(max_spreader_secondo_grado))
+
+
+os.chdir(path_grafico_attuale)
+
+A = my_version_to_agraph(I)
+A.layout(prog='sfdp')
+A.draw('grafico_finale.svg')
+
 
 plt.show()
