@@ -2,6 +2,7 @@ import networkx as nx  # pip3 install networkx
 import pygraphviz as pgv  # sudo apt-get install graphviz graphviz-dev
 import pydot  # pip3 install pydot
 import random
+import copy
 import csv
 import sys
 import os
@@ -67,7 +68,7 @@ def my_version_to_agraph(N):
         a = A.get_node(n)
         #a.attr.update({k: str(v) for k, v in nodedata.items()})
         
-        print('nodedata.items() : ' + str(nodedata.items()))
+        #print('nodedata.items() : ' + str(nodedata.items()))
         for k, v in nodedata.items():
             a.attr.update({k: str(v)})
             #print(str(k) + ' : ' + str(v))
@@ -102,7 +103,9 @@ def my_version_to_agraph(N):
 #                                                               #
 #################################################################
 
-I = nx.Graph()
+I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
+I = '' # Conterrà il grafo da utilizzare a ogni simulazione
+
 
 header = ['source','target']
 infected_nodes = []
@@ -136,7 +139,7 @@ try:
         sys.exit('Si è verificato un errore: ' + str(error))
 
     now = datetime.now()
-    current_time = now.strftime("%Y-%m-%d_%H:%M:%S")
+    current_time = now.strftime("%Y-%m-%d_%H-%M-%S")
 
     path_grafico_attuale = dir_output_grafici + '/' + current_time
     os.mkdir(path_grafico_attuale)
@@ -167,7 +170,7 @@ def test_len(len_row, num_row):
 def test_and_add_edge(row, num_row, warnings):
     try:
         test_len(len(row), num_row)
-        I.add_edge(int(row[0]), int(row[1]))
+        I_reset.add_edge(int(row[0]), int(row[1]))
         #print("Aggiunto arco riga " + str(num_row) + ", da nodo " + row[0] + " a nodo " + row[1])
     except ValueError as ve:
         errore = "Riga " + str(num_row) + " del file '" + grafo_csv + "': l'ID del nodo '" + header[0] + "' o '" + header[1] + "' non è un numero intero!"
@@ -183,23 +186,23 @@ def test_and_add_edge(row, num_row, warnings):
 #                                                               #
 #################################################################
 
-def read_state(node):
-    return nx.get_node_attributes(I, "state")[node]
+def read_state(grafo, node):
+    return nx.get_node_attributes(grafo, "state")[node]
 
-def read_recovery_time_left(node):
-    return nx.get_node_attributes(I, "recovery_time_left")[node]
+def read_recovery_time_left(grafo, node):
+    return nx.get_node_attributes(grafo, "recovery_time_left")[node]
 
-def read_immunity_time_left(node):
-    return nx.get_node_attributes(I, "immunity_time_left")[node]
+def read_immunity_time_left(grafo, node):
+    return nx.get_node_attributes(grafo, "immunity_time_left")[node]
 
-def read_count_infected(node):
-    return nx.get_node_attributes(I, "count_infected")[node]
+def read_count_infected(grafo, node):
+    return nx.get_node_attributes(grafo, "count_infected")[node]
 
-def read_temporary_count_infected(node):
-    return nx.get_node_attributes(I, "temporary_count_infected")[node]
+def read_temporary_count_infected(grafo, node):
+    return nx.get_node_attributes(grafo, "temporary_count_infected")[node]
 
-def read_neighbor_infected(node):
-    return nx.get_node_attributes(I, "neighbor_infected")[node]
+def read_neighbor_infected(grafo, node):
+    return nx.get_node_attributes(grafo, "neighbor_infected")[node]
 
 def print_stats(sus, inf, rec):
     print('Susceptible: ' + str(sus))
@@ -217,30 +220,30 @@ def print_stats(sus, inf, rec):
 #prende come parametro percentuale, viene moltiplicata per il numero di nodi della rete e arrotondato.
 #con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo il
 #numero di nodi ancora da infettare
-def infettainit(p):
+def infettainit(grafo, p):
 
-    '''print('1 -- I.number_of_nodes(): ' + str(I.number_of_nodes())) 
-    print(I)
-    print('Edge list:\n' + str(list(I.edges)) + '\n')
-    print('Node list:\n' + str(list(I.nodes)) + '\n')'''
+    '''print('1 -- grafo.number_of_nodes(): ' + str(grafo.number_of_nodes())) 
+    print(grafo)
+    print('Edge list:\n' + str(list(grafo.edges)) + '\n')
+    print('Node list:\n' + str(list(grafo.nodes)) + '\n')'''
            
-    initinf = int(round(p * (I.number_of_nodes()), 0))
-    print('initinf = ' + str(initinf) + '  ,  int(initinf) = ' + str(int(initinf)) + '\n')
+    initinf = int(round(p * (grafo.number_of_nodes()), 0))
+    #print('initinf = ' + str(initinf) + '  ,  int(initinf) = ' + str(int(initinf)) + '\n')
 
-    print('Susceptible: ' + str(I.number_of_nodes()-initinf))
+    print('Susceptible: ' + str(grafo.number_of_nodes() - initinf))
     print('Infected: ' + str(initinf))
     print('Recovered: 0')
-    st_tuple = (I.number_of_nodes()-initinf, initinf, 0)
+    st_tuple = (grafo.number_of_nodes() - initinf, initinf, 0)
     statistics_graph.append(st_tuple)
     while initinf > 0:
-        #print('2 -- I.number_of_nodes(): ' + str(I.number_of_nodes()))
-        x = random.choice(list(I.nodes))
+        #print('2 -- grafo.number_of_nodes(): ' + str(grafo.number_of_nodes()))
+        x = random.choice(list(grafo.nodes))
         #print('x: ' + str(x) + '\n\n')
 
-        if read_state(x) != 'infected':
-            I.add_node(x, state='infected')
-            I.add_node(x, color='red')
-            I.add_node(x, recovery_time_left=t_rec)
+        if read_state(grafo, x) != 'infected':
+            grafo.add_node(x, state='infected')
+            grafo.add_node(x, color='red')
+            grafo.add_node(x, recovery_time_left=t_rec)
             initinf -= 1
             infected_nodes.append(x) 
 
@@ -252,13 +255,13 @@ def infettainit(p):
 #                                                               #
 #################################################################
 
-def calc_infected_neighbors():
+def calc_infected_neighbors(grafo):
     result = []
-    for node in I.nodes :
+    for node in grafo.nodes :
         time_step = 0
         counter_infected = 0
 
-        for element_t in read_neighbor_infected(node):
+        for element_t in read_neighbor_infected(grafo, node):
             time_step += 1
 
             for neighbor in element_t:
@@ -269,9 +272,9 @@ def calc_infected_neighbors():
                 for neighbor_time_step in range(start_time_step, stop_time_step):
                     if stop_time_step > t_step:
                         break
-                    print('neighbor:' + str(neighbor) + '   --   neighbor_time_step: ' + str(neighbor_time_step))
-                    print('read_neighbor_infected(neighbor): ' + str(read_neighbor_infected(neighbor)))
-                    counter_infected += len(read_neighbor_infected(neighbor)[neighbor_time_step])
+                    #print('neighbor:' + str(neighbor) + '   --   neighbor_time_step: ' + str(neighbor_time_step))
+                    #print('read_neighbor_infected(grafo, neighbor): ' + str(read_neighbor_infected(grafo, neighbor)))
+                    counter_infected += len(read_neighbor_infected(grafo, neighbor)[neighbor_time_step])
 
         value = (node, counter_infected)
         result.append(value)
@@ -311,7 +314,7 @@ with open(grafo_csv, encoding='utf8') as csv_file:
         warnings = test_and_add_edge(row, num_row, warnings) 
 
 
-    I.remove_edges_from(nx.selfloop_edges(I)) # rimuovo i self loop
+    I_reset.remove_edges_from(nx.selfloop_edges(I_reset)) # rimuovo i self loop
 
     if (len(warnings) > 0):
         print('\n\nWARNING:')
@@ -322,10 +325,22 @@ with open(grafo_csv, encoding='utf8') as csv_file:
 
 
 print('\n\n')
-print('Edge list:\n' + str(list(I.edges)) + '\n')
-print('Node list:\n' + str(list(I.nodes)) + '\n')
-print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
+print('Edge list:\n' + str(list(I_reset.edges)) + '\n')
+print('Node list:\n' + str(list(I_reset.nodes)) + '\n')
+print('Number of nodes:\n' + str(I_reset.number_of_nodes()) + '\n')
 
+
+# I_reset = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
+
+for node in (I_reset.nodes): 
+    lst = []
+    for i in range(t_step):
+        lst.append([])
+
+    I_reset.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0, 'neighbor_infected': lst, 'recovery_time_left': 0})])
+
+
+ 
 
 
 #################################################################
@@ -334,186 +349,177 @@ print('Number of nodes:\n' + str(I.number_of_nodes()) + '\n')
 #                                                               #
 #################################################################
 
-# I = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
+for e in range(iterations):
 
-for node in (I.nodes): 
-    lst = []
-    for i in range(t_step):
-        lst.append([])
+    I = copy.deepcopy(I_reset)
 
-    I.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0, 'neighbor_infected': lst})])
-    
-
-
-infettainit(p_init)
-
-'''for element in I.nodes.data() :
-    print(element)'''
-
-print("\n\n------------------------------------------------------------------------------------\n\n")
-
-#sys.exit()
-
-#for e in range(iterations):
-for step in range(t_step):
-    print(str(step))
-    new_infected_nodes = []
-    #print(infected_nodes)
-    random.shuffle(infected_nodes)
-    #print(infected_nodes)
-    copy_infected_nodes = infected_nodes.copy()
-
-    for node in (infected_nodes):
-        #print("Sto lavorando con il nodo " + str(node))
-        #print(infected_nodes)
-
-        for neighbor in (I.adj[node]):
-            if read_state(neighbor) =='susceptible' and round(random.uniform(0.00, 1.00), 2) <= p_trans:
-                #se un node è infettato, prendiamo tutti i vicini infettabili (suscettibili)
-                #prendiamo la probabilità di infezione e un numero random tra 0 e 1
-                #se il numero è minore della probabilità di infezione, il neighbor viene contagiato
-                #quindi gli assegniamo il tempo di recupero e aumentiamo il count dei nodi infettati dal node
-                I.add_node(neighbor, state='infected')
-                I.add_node(neighbor, recovery_time_left=(t_rec))
-                I.add_node(neighbor, color='red')
-                I.add_node(node, count_infected=(read_count_infected(node) + 1))
-                I.add_node(node, temporary_count_infected=(read_temporary_count_infected(node) + 1))
-                
-                ninf = read_neighbor_infected(node)
-                ninf[step].append(neighbor)
-                print('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
-                print(ninf)
-                I.add_node(node, neighbor_infected=ninf)
-
-                new_infected_nodes.append(neighbor)
-                
-        if read_recovery_time_left(node) >= 1:
-            I.add_node(node, recovery_time_left=(read_recovery_time_left(node) - 1))
-            if read_recovery_time_left(node) == 0:
-                I.add_node(node, state = 'recovered')
-                I.add_node(node, immunity_time_left = (t_sus + 1))
-                copy_infected_nodes.remove(node)
-
-    statistics = {
-        "susceptible": 0,
-        "recovered": 0,
-        "infected": 0
-    }
-
-    turn_spreader = []
-
-    for node in (I.nodes):
-        if read_state(node) == 'recovered':
-            I.add_node(node, color='green') #coloriamo di verde i nodi guariti
-            if read_immunity_time_left(node) >= 1:
-                I.add_node(node, immunity_time_left=(read_immunity_time_left(node) - 1))
-                if read_immunity_time_left(node) == 0:
-                    I.add_node(node, state='susceptible')
-                    I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
-        
-        statistics[read_state(node)] += 1
-        #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
-        if read_temporary_count_infected(node) > 0:
-            turn_spreader.append((node, read_temporary_count_infected(node)))    
-            I.add_node(node, temporary_count_infected=0)
-
-    #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
-    turn_spreader.sort(key=lambda a: a[1], reverse=True)
-
-    #Per come è scritta ora vengono appese anche delle liste vuote se sul turno non si contagia nessuno
-    if len(turn_spreader) >= 4:
-        t_tuple = []
-
-        for i in range(4):
-            t_tuple.append(turn_spreader[i])
-        
-        '''
-        count_diff_value = 0
-        i = 0
-        prev_val = -1
-        while (count_diff_value < 4 or i < (len(turn_spreader) - 1)):
-            val = turn_spreader[i][1]
-            if (val != prev_val):
-                count_diff_value += 1
-                tmp_val = val
-            t_tuple.append(turn_spreader[i])
-            i += 1
-        '''
-
-        max_spreader.append(t_tuple)
-        print(max_spreader)
-    else:
-        max_spreader.append(turn_spreader)
-        print(max_spreader)
+    infettainit(I, p_init)
 
     '''for element in I.nodes.data() :
-        print(element)'''
-    #print("\n\n")
-    st_susceptible = statistics['susceptible']
-    st_infected = statistics['infected']
-    st_recovered = statistics['recovered']
+                    print(element)'''
 
-    print_stats(st_susceptible,st_infected, st_recovered)
-    st_tuple = (st_susceptible, st_infected, st_recovered)
-    statistics_graph.append(st_tuple)
-    print("\n\n")
-
-    infected_nodes = copy_infected_nodes + new_infected_nodes
-
-#print(statistics_graph)
-
-#Creiamo una lista per il tempo, lunga quanto le statistiche (quindi uguale a t_step)
-time = [i for i in range(len(statistics_graph))]
-
-#Spacchetta tuple e fa plot dei 3 valori
-
-y1, y2, y3 = zip(*statistics_graph)
-
-'''
-# Plot senza interpolazione
-plt.plot(time, y1, label="S", color='b')
-plt.plot(time, y2, label="I", color='r')
-plt.plot(time, y3, label="R", color='g')
-'''
-
-time = np.array(time)
-y1 = np.array(y1)
-y2 = np.array(y2)
-y3 = np.array(y3)
-
-time_y1_spline = make_interp_spline(time, y1)
-time_y2_spline = make_interp_spline(time, y2)
-time_y3_spline = make_interp_spline(time, y3)
- 
-# Returns evenly spaced numbers over a specified interval
-pl_time = np.linspace(time.min(), time.max(), 500)
-pl_y1 = time_y1_spline(pl_time)
-pl_y2 = time_y2_spline(pl_time)
-pl_y3 = time_y3_spline(pl_time)
-
-# Plotting the Graph
-plt.plot(pl_time, pl_y1, label="S", color='b')
-plt.plot(pl_time, pl_y2, label="I", color='r')
-plt.plot(pl_time, pl_y3, label="R", color='g')
-
-#Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
-plt.xlabel('Time Step')
-plt.ylabel('Nodes')
-plt.title('SIR Model - Disease Trends')
-plt.legend()
+    print("\n\n------------------------------------------------------------------------------------\n\n")
 
 
-max_spreader_secondo_grado = calc_infected_neighbors() 
-#print('\n\n' + str(max_spreader_secondo_grado))
-max_spreader_secondo_grado.sort(key=lambda a: a[1], reverse=True)
-print('\n\n' + str(max_spreader_secondo_grado))
+    for step in range(t_step):
+        print(str(step))
+        new_infected_nodes = []
+        #print(infected_nodes)
+        random.shuffle(infected_nodes)
+        #print(infected_nodes)
+        copy_infected_nodes = infected_nodes.copy()
+
+        for node in (infected_nodes):
+            #print("Sto lavorando con il nodo " + str(node))
+            #print(infected_nodes)
+
+            for neighbor in (I.adj[node]):
+                if read_state(I, neighbor) =='susceptible' and round(random.uniform(0.00, 1.00), 2) <= p_trans:
+                    #se un node è infettato, prendiamo tutti i vicini infettabili (suscettibili)
+                    #prendiamo la probabilità di infezione e un numero random tra 0 e 1
+                    #se il numero è minore della probabilità di infezione, il neighbor viene contagiato
+                    #quindi gli assegniamo il tempo di recupero e aumentiamo il count dei nodi infettati dal node
+                    I.add_node(neighbor, state='infected')
+                    I.add_node(neighbor, recovery_time_left=(t_rec))
+                    I.add_node(neighbor, color='red')
+                    I.add_node(node, count_infected=(read_count_infected(I, node) + 1))
+                    I.add_node(node, temporary_count_infected=(read_temporary_count_infected(I, node) + 1))
+                    
+                    ninf = read_neighbor_infected(I, node)
+                    ninf[step].append(neighbor)
+                    print('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
+                    #print(ninf)
+                    I.add_node(node, neighbor_infected=ninf)
+
+                    new_infected_nodes.append(neighbor)
+                    
+            if read_recovery_time_left(I, node) >= 1:
+                I.add_node(node, recovery_time_left=(read_recovery_time_left(I, node) - 1))
+                if read_recovery_time_left(I, node) == 0:
+                    I.add_node(node, state = 'recovered')
+                    I.add_node(node, immunity_time_left = (t_sus + 1))
+                    copy_infected_nodes.remove(node)
+
+        statistics = {
+            "susceptible": 0,
+            "recovered": 0,
+            "infected": 0
+        }
+
+        turn_spreader = []
+
+        for node in (I.nodes):
+            if read_state(I, node) == 'recovered':
+                I.add_node(node, color='green') #coloriamo di verde i nodi guariti
+                if read_immunity_time_left(I, node) >= 1:
+                    I.add_node(node, immunity_time_left=(read_immunity_time_left(I, node) - 1))
+                    if read_immunity_time_left(I, node) == 0:
+                        I.add_node(node, state='susceptible')
+                        I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
+            
+            statistics[read_state(I, node)] += 1
+            #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
+            if read_temporary_count_infected(I, node) > 0:
+                turn_spreader.append((node, read_temporary_count_infected(I, node)))    
+                I.add_node(node, temporary_count_infected=0)
+
+        #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
+        turn_spreader.sort(key=lambda a: a[1], reverse=True)
+
+        #Per come è scritta ora vengono appese anche delle liste vuote se sul turno non si contagia nessuno
+        if len(turn_spreader) >= 4:
+            t_tuple = []
+
+            for i in range(4):
+                t_tuple.append(turn_spreader[i])
+            
+            '''
+            count_diff_value = 0
+            i = 0
+            prev_val = -1
+            while (count_diff_value < 4 or i < (len(turn_spreader) - 1)):
+                val = turn_spreader[i][1]
+                if (val != prev_val):
+                    count_diff_value += 1
+                    tmp_val = val
+                t_tuple.append(turn_spreader[i])
+                i += 1
+            '''
+
+            max_spreader.append(t_tuple)
+            #print(max_spreader)
+        else:
+            max_spreader.append(turn_spreader)
+            #print(max_spreader)
+
+        '''for element in I.nodes.data() :
+            print(element)'''
+        #print("\n\n")
+        st_susceptible = statistics['susceptible']
+        st_infected = statistics['infected']
+        st_recovered = statistics['recovered']
+
+        print_stats(st_susceptible,st_infected, st_recovered)
+        st_tuple = (st_susceptible, st_infected, st_recovered)
+        statistics_graph.append(st_tuple)
+        print("\n\n")
+
+        infected_nodes = copy_infected_nodes + new_infected_nodes
+
+    #print(statistics_graph)
+
+    #Creiamo una lista per il tempo, lunga quanto le statistiche (quindi uguale a t_step)
+    time = [i for i in range(len(statistics_graph))]
+
+    #Spacchetta tuple e fa plot dei 3 valori
+
+    y1, y2, y3 = zip(*statistics_graph)
+
+    '''
+    # Plot senza interpolazione
+    plt.plot(time, y1, label="S", color='b')
+    plt.plot(time, y2, label="I", color='r')
+    plt.plot(time, y3, label="R", color='g')
+    '''
+
+    time = np.array(time)
+    y1 = np.array(y1)
+    y2 = np.array(y2)
+    y3 = np.array(y3)
+
+    time_y1_spline = make_interp_spline(time, y1)
+    time_y2_spline = make_interp_spline(time, y2)
+    time_y3_spline = make_interp_spline(time, y3)
+     
+    # Returns evenly spaced numbers over a specified interval
+    pl_time = np.linspace(time.min(), time.max(), 500)
+    pl_y1 = time_y1_spline(pl_time)
+    pl_y2 = time_y2_spline(pl_time)
+    pl_y3 = time_y3_spline(pl_time)
+
+    # Plotting the Graph
+    plt.plot(pl_time, pl_y1, label="S", color='b')
+    plt.plot(pl_time, pl_y2, label="I", color='r')
+    plt.plot(pl_time, pl_y3, label="R", color='g')
+
+    #Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
+    plt.xlabel('Time Step')
+    plt.ylabel('Nodes')
+    plt.title('SIR Model - Disease Trends')
+    plt.legend()
 
 
-os.chdir(path_grafico_attuale)
+    max_spreader_secondo_grado = calc_infected_neighbors(I) 
+    #print('\n\n' + str(max_spreader_secondo_grado))
+    max_spreader_secondo_grado.sort(key=lambda a: a[1], reverse=True)
+    print('\n\n' + str(max_spreader_secondo_grado))
 
-A = my_version_to_agraph(I)
-A.layout(prog='sfdp')
-A.draw('grafico_finale.svg')
+    if e == 0: # Va cambiata dir solo al primo turno, prima di iniziare a salvare i vari grafici
+        os.chdir(path_grafico_attuale)
 
+    A = my_version_to_agraph(I)
+    A.layout(prog='sfdp')
+    A.draw('grafico_finale' + str(e) + '.svg')
 
-plt.show()
+    plt.savefig('stat_plot' + str(e) + '.png')
+    plt.clf()
