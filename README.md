@@ -35,7 +35,8 @@ Il sistema dovrebbe consentire:
 - Il candidato deve sviluppare una tecnica che, attraverso una serie di simulazioni casuali, permette di trovare e mostrare i nodi `super spreader` più rilevanti del grafo passato in input
 
 ## TODO
-- Inserisci funzione che stampi ad ogni ciclo il grafo con tutti i nodi e i relativi stati rappresentati dal colore di riempimento dei nodi
+- Decidi come trovare il max spreader sfruttando i valori ottenuti dai vari turni delle simulazioni
+- Mostra in contemporanea ma su plot diversi (subplot) le statistiche ottenute nelle varie simulazioni
 
 ## Tips
 - Tracciare evoluzione temporanea del virus e nel mentre identificare quali sono i nodi con il numero più alto di infetti ad ogni time step. Questi nodi dovrebbero essere i più impattanti nello spreading dell'epidemia e possono essere considerati super spreader.

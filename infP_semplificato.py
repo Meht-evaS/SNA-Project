@@ -103,19 +103,6 @@ def my_version_to_agraph(N):
 #                                                               #
 #################################################################
 
-I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
-I = '' # Conterrà il grafo da utilizzare a ogni simulazione
-
-
-header = ['source','target']
-infected_nodes = []
-statistics_graph = []
-max_spreader = []
-
-errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente header:\t\t' + header[0] + ',' + header[1] + ' [, ...]\n'
-
-#grafo_csv = input("Inserisci il nome del file csv da leggere: ")
-
 #valori iniziali
 #grafo_csv = 'Prove_mod_cris\graph.csv'
 grafo_csv = 'graph3.csv'
@@ -124,8 +111,27 @@ p_trans = 0.15
 t_rec = 3
 t_sus = 7
 t_step = 5
-iterations = 4
+simulations = 4
 
+
+I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
+I = '' # Conterrà il grafo da utilizzare a ogni simulazione
+
+header = ['source','target']
+infected_nodes = []
+statistics_graph = []
+max_spreader_primo_grado = []
+max_spreader_secondo_grado = []
+
+for i in range(simulations):
+    statistics_graph.append([])
+    max_spreader_primo_grado.append([])
+    max_spreader_secondo_grado.append([])
+
+
+errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente header:\t\t' + header[0] + ',' + header[1] + ' [, ...]\n'
+
+#grafo_csv = input("Inserisci il nome del file csv da leggere: ")
 
 dir_output_grafici = 'Grafici'
 path_grafico_attuale = ''
@@ -220,7 +226,13 @@ def print_stats(sus, inf, rec):
 #prende come parametro percentuale, viene moltiplicata per il numero di nodi della rete e arrotondato.
 #con un while, prima verifichiamo di non aver già infettato il node, quindi lo infettiamo e dimuniamo il
 #numero di nodi ancora da infettare
-def infettainit(grafo, p):
+def infettainit(grafo, p, e):
+
+    global infected_nodes
+    global statistics_graph
+
+    infected_nodes = [] # Reset variabili della simulazione precedente 
+
 
     '''print('1 -- grafo.number_of_nodes(): ' + str(grafo.number_of_nodes())) 
     print(grafo)
@@ -234,7 +246,7 @@ def infettainit(grafo, p):
     print('Infected: ' + str(initinf))
     print('Recovered: 0')
     st_tuple = (grafo.number_of_nodes() - initinf, initinf, 0)
-    statistics_graph.append(st_tuple)
+    statistics_graph[e].append(st_tuple)
     while initinf > 0:
         #print('2 -- grafo.number_of_nodes(): ' + str(grafo.number_of_nodes()))
         x = random.choice(list(grafo.nodes))
@@ -349,11 +361,11 @@ for node in (I_reset.nodes):
 #                                                               #
 #################################################################
 
-for e in range(iterations):
+for e in range(simulations):
 
     I = copy.deepcopy(I_reset)
 
-    infettainit(I, p_init)
+    infettainit(I, p_init, e)
 
     '''for element in I.nodes.data() :
                     print(element)'''
@@ -423,7 +435,7 @@ for e in range(iterations):
                 turn_spreader.append((node, read_temporary_count_infected(I, node)))    
                 I.add_node(node, temporary_count_infected=0)
 
-        #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader
+        #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader_primo_grado
         turn_spreader.sort(key=lambda a: a[1], reverse=True)
 
         #Per come è scritta ora vengono appese anche delle liste vuote se sul turno non si contagia nessuno
@@ -446,11 +458,11 @@ for e in range(iterations):
                 i += 1
             '''
 
-            max_spreader.append(t_tuple)
-            #print(max_spreader)
+            max_spreader_primo_grado[e].append(t_tuple)
+            #print(max_spreader_primo_grado[e])
         else:
-            max_spreader.append(turn_spreader)
-            #print(max_spreader)
+            max_spreader_primo_grado[e].append(turn_spreader)
+            #print(max_spreader_primo_grado[e])
 
         '''for element in I.nodes.data() :
             print(element)'''
@@ -461,19 +473,19 @@ for e in range(iterations):
 
         print_stats(st_susceptible,st_infected, st_recovered)
         st_tuple = (st_susceptible, st_infected, st_recovered)
-        statistics_graph.append(st_tuple)
+        statistics_graph[e].append(st_tuple)
         print("\n\n")
 
         infected_nodes = copy_infected_nodes + new_infected_nodes
 
-    #print(statistics_graph)
+    #print(statistics_graph[e])
 
     #Creiamo una lista per il tempo, lunga quanto le statistiche (quindi uguale a t_step)
-    time = [i for i in range(len(statistics_graph))]
+    time = [i for i in range(len(statistics_graph[e]))]
 
     #Spacchetta tuple e fa plot dei 3 valori
 
-    y1, y2, y3 = zip(*statistics_graph)
+    y1, y2, y3 = zip(*statistics_graph[e])
 
     '''
     # Plot senza interpolazione
@@ -505,14 +517,14 @@ for e in range(iterations):
     #Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
     plt.xlabel('Time Step')
     plt.ylabel('Nodes')
-    plt.title('SIR Model - Disease Trends')
+    plt.title('SIR Model - Disease Trends - Simulation ' + str(e))
     plt.legend()
 
 
-    max_spreader_secondo_grado = calc_infected_neighbors(I) 
-    #print('\n\n' + str(max_spreader_secondo_grado))
-    max_spreader_secondo_grado.sort(key=lambda a: a[1], reverse=True)
-    print('\n\n' + str(max_spreader_secondo_grado))
+    max_spreader_secondo_grado[e] = calc_infected_neighbors(I) 
+    #print('\n\n' + str(max_spreader_secondo_grado[e]))
+    max_spreader_secondo_grado[e].sort(key=lambda a: a[1], reverse=True)
+    print('\n\n' + str(max_spreader_secondo_grado[e]))
 
     if e == 0: # Va cambiata dir solo al primo turno, prima di iniziare a salvare i vari grafici
         os.chdir(path_grafico_attuale)
@@ -523,3 +535,11 @@ for e in range(iterations):
 
     plt.savefig('stat_plot' + str(e) + '.png')
     plt.clf()
+
+
+
+# Trova un modo per calcolare max spreader usando i valori ottenuti dalle varie simulazioni
+print('\n\n\n')
+print('statistics_graph :\n' + str(statistics_graph) + '\n\n')
+print('max_spreader_primo_grado :\n' + str(max_spreader_primo_grado) + '\n\n')
+print('max_spreader_secondo_grado :\n' + str(max_spreader_secondo_grado) + '\n\n')
