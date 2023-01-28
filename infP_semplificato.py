@@ -15,8 +15,9 @@ from scipy.interpolate import make_interp_spline # pip3 install scipy
 import matplotlib.pyplot as plt  # pip3 install matplotlib
                                  # Se in esecuzione codice genera errori: sudo apt-get install python3-tk
 
-from math import log
 from operator import itemgetter
+from collections import defaultdict
+
 
 
 
@@ -418,8 +419,8 @@ for e in range(simulations):
             "infected": 0
         }
 
-        turn_spreader = []
-
+        #turn_spreader = []
+        
         for node in (I.nodes):
             if read_state(I, node) == 'recovered':
                 I.add_node(node, color='green') #coloriamo di verde i nodi guariti
@@ -432,37 +433,38 @@ for e in range(simulations):
             statistics[read_state(I, node)] += 1
             #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
             if read_temporary_count_infected(I, node) > 0:
-                turn_spreader.append((node, read_temporary_count_infected(I, node)))    
+                max_spreader_primo_grado[e].append((node, read_temporary_count_infected(I, node)))
+                #turn_spreader.append((node, read_temporary_count_infected(I, node)))    
                 I.add_node(node, temporary_count_infected=0)
 
-        #sort turn_spreader e si prendono solo i primi 4 nodi di cui fare l'append in lista max_spreader_primo_grado
-        turn_spreader.sort(key=lambda a: a[1], reverse=True)
+        #sort turn_spreader e si prendono solo i primi 3 nodi di cui fare l'append in lista max_spreader_primo_grado
+        #turn_spreader.sort(key=lambda a: a[1], reverse=True)
 
+        '''
         #Per come è scritta ora vengono appese anche delle liste vuote se sul turno non si contagia nessuno
-        if len(turn_spreader) >= 4:
+        if len(turn_spreader) >= 3:
             t_tuple = []
 
-            for i in range(4):
-                t_tuple.append(turn_spreader[i])
-            
-            '''
             count_diff_value = 0
             i = 0
             prev_val = -1
-            while (count_diff_value < 4 or i < (len(turn_spreader) - 1)):
+            while (count_diff_value < 3 and i < len(turn_spreader)):
                 val = turn_spreader[i][1]
                 if (val != prev_val):
                     count_diff_value += 1
-                    tmp_val = val
+                    prev_val = val
                 t_tuple.append(turn_spreader[i])
+                max_spreader_primo_grado_riuniti.append(turn_spreader[i])
                 i += 1
-            '''
 
             max_spreader_primo_grado[e].append(t_tuple)
             #print(max_spreader_primo_grado[e])
         else:
             max_spreader_primo_grado[e].append(turn_spreader)
+            max_spreader_primo_grado_riuniti.append(turn_spreader[i])
             #print(max_spreader_primo_grado[e])
+        '''
+
 
         '''for element in I.nodes.data() :
             print(element)'''
@@ -484,7 +486,6 @@ for e in range(simulations):
     time = [i for i in range(len(statistics_graph[e]))]
 
     #Spacchetta tuple e fa plot dei 3 valori
-
     y1, y2, y3 = zip(*statistics_graph[e])
 
     '''
@@ -516,7 +517,7 @@ for e in range(simulations):
 
     #Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
     plt.xlabel('Time Step')
-    plt.ylabel('Nodes')
+    plt.ylabel('# Nodes')
     plt.title('SIR Model - Disease Trends - Simulation ' + str(e))
     plt.legend()
 
@@ -536,10 +537,118 @@ for e in range(simulations):
     plt.savefig('stat_plot' + str(e) + '.png')
     plt.clf()
 
-
+plt.close() # Dopo aver salvato vari file conviene rilasciare la memoria, anche per evitare bug
 
 # Trova un modo per calcolare max spreader usando i valori ottenuti dalle varie simulazioni
 print('\n\n\n')
-print('statistics_graph :\n' + str(statistics_graph) + '\n\n')
+#print('statistics_graph :\n' + str(statistics_graph) + '\n\n')
 print('max_spreader_primo_grado :\n' + str(max_spreader_primo_grado) + '\n\n')
 print('max_spreader_secondo_grado :\n' + str(max_spreader_secondo_grado) + '\n\n')
+
+
+# FINAL max_spreader_primo_grado
+percentages_list = []
+for simulation_value in max_spreader_primo_grado:
+    sums = defaultdict(int)
+    
+    total_infections = 0
+    for i, k in simulation_value:
+        sums[i] += k
+        total_infections += k
+
+    print('total_infections : ' + str(total_infections))
+    #print('sums.items : ' + str(sums.items()))
+
+    sums_list = list(sums.items())
+    sums_list.sort(key=lambda a: a[1], reverse=True)
+    print('sums sorted : ' + str(sums_list))
+
+    for tupla in sums_list:
+        tupla_list = list(tupla)
+        tupla_list.append(round(100 * (tupla[1]/total_infections), 2))
+        print(tupla_list)
+        percentages_list.append(tuple(tupla_list))
+
+    print('\n\n')
+
+sums_final = defaultdict(int)
+
+for i, k, p in percentages_list:
+    sums_final[i] += p
+    print('sums_final[' + str(i) + '] : ' + str(sums_final[i]))
+
+print('\n\nsums_final : ' + str(sums_final))
+
+for i in sums_final:
+    sums_final[i] = round(sums_final[i]/simulations, 2)
+
+print('\n\nsums_final : ' + str(sums_final))  # PERCENTUALE DI NODI DI PRIMO GRADO INFETTATI IN MEDIA (RISPETTO IL TOTALE DEI NODI INFETTATI) TRA LE VARIE SIMULAZIONI
+
+
+
+
+# FINAL max_spreader_secondo_grado
+temp = []
+for simulation_value in max_spreader_secondo_grado:
+    temp += simulation_value
+
+total_sum_2d = defaultdict(int)
+
+for i, k in temp:
+    total_sum_2d[i] += k
+
+#print('total_sum_2d.items : ' + str(total_sum_2d.items()))
+
+for i in total_sum_2d:
+    total_sum_2d[i] = round(total_sum_2d[i]/simulations, 2)
+
+total_sum_2d_list = list(total_sum_2d.items())
+total_sum_2d_list.sort(key=lambda a: a[1], reverse=True)
+
+print('\n\ntotal_sum_2d_list : ' + str(total_sum_2d_list))  # MEDIA DI NODI DI SECONDO GRADO INFETTATI TRA LE VARIE SIMULAZIONI
+
+
+fig = plt.figure()
+
+# Plot max_spreader_primo_grado
+plt.subplot(2, 1, 1)
+plt.xlabel('Nodes')
+plt.ylabel('AVG % infected nodes')
+plt.title('First degree infected - over all simulations')
+
+x, y = zip(*sums_final.items())
+
+X = np.array(x)
+Y = np.array(y)
+
+#plt.axes()
+plt.scatter(X, Y, 5)
+plt.grid()
+
+#plt.show()
+#plt.savefig('First_degree_AVG_percent_infected_nodes.png')
+#plt.clf()
+
+
+# Plot max_spreader_secondo_grado
+plt.subplot(2, 1, 2)
+plt.xlabel('Nodes')
+plt.ylabel('AVG infected nodes')
+plt.title('Second degree infected - over all simulations')
+
+x, y = zip(*total_sum_2d_list)
+
+X = np.array(x)
+Y = np.array(y)
+
+#plt.axes()
+plt.scatter(X, Y, 5)
+plt.grid()
+
+fig.tight_layout() # Aggiusta i margini tra i vari sublots
+fig.savefig('MaxSpreader.png')
+
+plt.show()
+#plt.savefig('Second_degree_SUM_infected_nodes.png')
+
+plt.clf()
