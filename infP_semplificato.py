@@ -7,6 +7,8 @@ import csv
 import sys
 import os
 
+import logging
+
 from datetime import datetime
 
 # Rendering curve tramite interpolazione 
@@ -17,8 +19,6 @@ import matplotlib.pyplot as plt  # pip3 install matplotlib
 
 from operator import itemgetter
 from collections import defaultdict
-
-
 
 
 #################################################################
@@ -97,67 +97,6 @@ def my_version_to_agraph(N):
 
 
 
-
-#################################################################
-#                                                               #
-#            VARIABILI GLOBALI E SETTING ENVIRONMENT            #
-#                                                               #
-#################################################################
-
-#valori iniziali
-#grafo_csv = 'Prove_mod_cris\graph.csv'
-grafo_csv = 'graph3.csv'
-p_init = 0.10
-p_trans = 0.15
-t_rec = 3
-t_sus = 7
-t_step = 5
-simulations = 4
-
-
-I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
-I = '' # Conterrà il grafo da utilizzare a ogni simulazione
-
-header = ['source','target']
-infected_nodes = []
-statistics_graph = []
-max_spreader_primo_grado = []
-max_spreader_secondo_grado = []
-
-for i in range(simulations):
-    statistics_graph.append([])
-    max_spreader_primo_grado.append([])
-    max_spreader_secondo_grado.append([])
-
-
-errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente header:\t\t' + header[0] + ',' + header[1] + ' [, ...]\n'
-
-#grafo_csv = input("Inserisci il nome del file csv da leggere: ")
-
-dir_output_grafici = 'Grafici'
-path_grafico_attuale = ''
-
-try:
-    try:
-        os.mkdir(dir_output_grafici)
-    except FileExistsError as error:
-        pass
-    except OSError as error:
-        sys.exit('Si è verificato un errore: ' + str(error))
-
-    now = datetime.now()
-    current_time = now.strftime("%Y-%m-%d_%H-%M-%S")
-
-    path_grafico_attuale = dir_output_grafici + '/' + current_time
-    os.mkdir(path_grafico_attuale)
-
-except FileExistsError:
-    pass
-except Exception as error:
-    sys.exit('Si è verificato un errore: ' + str(error))
-
-
-
 #################################################################
 #                                                               #
 #                FUNZIONI CONTROLLO CSV DI INPUT                #
@@ -215,6 +154,14 @@ def print_stats(sus, inf, rec):
     print('Susceptible: ' + str(sus))
     print('Infected: ' + str(inf))
     print('Recovered: ' + str(rec))
+    print("\n")
+
+
+    logging.info('Susceptible: ' + str(sus))
+    logging.info('Infected: ' + str(inf))
+    logging.info('Recovered: ' + str(rec))
+    logging.info('\n')
+
 
 
 #################################################################
@@ -243,9 +190,18 @@ def infettainit(grafo, p, e):
     initinf = int(round(p * (grafo.number_of_nodes()), 0))
     #print('initinf = ' + str(initinf) + '  ,  int(initinf) = ' + str(int(initinf)) + '\n')
 
+    print_stats(grafo.number_of_nodes() - initinf, initinf, 0)
+
+    '''
     print('Susceptible: ' + str(grafo.number_of_nodes() - initinf))
     print('Infected: ' + str(initinf))
     print('Recovered: 0')
+
+    logging.info('Susceptible: ' + str(grafo.number_of_nodes() - initinf))
+    logging.info('Infected: ' + str(initinf))
+    logging.info('Recovered: 0')
+    '''
+
     st_tuple = (grafo.number_of_nodes() - initinf, initinf, 0)
     statistics_graph[e].append(st_tuple)
     while initinf > 0:
@@ -258,7 +214,12 @@ def infettainit(grafo, p, e):
             grafo.add_node(x, color='red')
             grafo.add_node(x, recovery_time_left=t_rec)
             initinf -= 1
-            infected_nodes.append(x) 
+            infected_nodes.append(x)
+            non_infected_nodes[e].remove(x)
+
+    print('I nodi infettati iniziali sono:\n' + str(infected_nodes) + '\n')
+    logging.info('I nodi infettati iniziali sono:\n' + str(infected_nodes) + '\n')
+
 
 
 
@@ -294,53 +255,140 @@ def calc_infected_neighbors(grafo):
 
     return result
 
+
+
+#################################################################
+#                                                               #
+#            VARIABILI GLOBALI E SETTING ENVIRONMENT            #
+#                                                               #
+#################################################################
+
+logging.getLogger('matplotlib.font_manager').disabled = True
+
+#valori iniziali
+#grafo_csv = 'Prove_mod_cris\graph.csv'
+grafo_csv = 'graph3.csv'
+p_init = 0.10
+p_trans = 0.15
+t_rec = 3
+t_sus = 7
+t_step = 5
+simulations = 3
+
+
+I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
+I = '' # Conterrà il grafo da utilizzare a ogni simulazione
+
+CSV_read_warnings = []
+
+data_laboratory = {} # Conterrà le proprietà dei nodi da salvare in CSV
+data_laboratory['header'] = ['Node'] 
+
+header = ['source','target']
+infected_nodes = []
+statistics_graph = []
+non_infected_nodes = []
+max_spreader_primo_grado = []
+max_spreader_secondo_grado = []
+
+for i in range(simulations):
+    statistics_graph.append([])
+    non_infected_nodes.append([])
+    max_spreader_primo_grado.append([])
+    max_spreader_secondo_grado.append([])
+
+
+errore_lettura_csv = 'Il file CSV passato in input deve iniziare con il seguente header:\t\t' + header[0] + ',' + header[1] + ' [, ...]\n'
+
+#grafo_csv = input("Inserisci il nome del file csv da leggere: ")
+
+dir_output_grafici = 'Grafici'
+path_grafico_attuale = ''
+
+try:
+    try:
+        os.mkdir(dir_output_grafici)
+    except FileExistsError as error:
+        pass
+    except OSError as error:
+        sys.exit('Si è verificato un errore: ' + str(error))
+
+    now = datetime.now()
+    current_time = now.strftime("%Y-%m-%d_%H-%M-%S")
+
+    path_grafico_attuale = dir_output_grafici + '/' + current_time
+    os.mkdir(path_grafico_attuale)
+
+except FileExistsError:
+    pass
+except Exception as error:
+    sys.exit('Si è verificato un errore: ' + str(error))
+
+
+
 #################################################################
 #                                                               #
 #                INIZIO PROGRAMMA - LETTURA CSV                 #
 #                                                               #
 #################################################################
 
-
 with open(grafo_csv, encoding='utf8') as csv_file:
-    warnings = []
-
     csv_reader = csv.reader(csv_file, delimiter=',')
 
     csv_header = next(csv_reader)
-    print(str(csv_header) + '\n\n')
+    #print(str(csv_header) + '\n\n')
 
     test_header(csv_header) # Controllo se header CSV corretto, altrimenti interruzione programma
 
     csv_type = next(csv_reader) # Lo uso giusto per creare un WARNING in caso contenga un grafo diretto
-    print('\n\n' + str(csv_type))
+    #print('\n\n' + str(csv_type))
 
     if (len(csv_type) > 2 and csv_type[2] == 'directed'):
-        warnings.append("Il file '" + grafo_csv + "' contiene un grafo 'diretto' ma verrà trasformato in un grafo 'non diretto'") 
+        CSV_read_warnings.append("Il file '" + grafo_csv + "' contiene un grafo 'diretto' ma verrà trasformato in un grafo 'non diretto'") 
 
-    warnings = test_and_add_edge(csv_type, 2, warnings) # Aggiungo l'arco della riga appena letta, sennò lo perderei
+    CSV_read_warnings = test_and_add_edge(csv_type, 2, CSV_read_warnings) # Aggiungo l'arco della riga appena letta, sennò lo perderei
 
     num_row = 2
     for row in csv_reader:
         num_row += 1
-        print(row)
+        #print(row)
 
-        warnings = test_and_add_edge(row, num_row, warnings) 
+        CSV_read_warnings = test_and_add_edge(row, num_row, CSV_read_warnings) 
 
 
-    I_reset.remove_edges_from(nx.selfloop_edges(I_reset)) # rimuovo i self loop
+I_reset.remove_edges_from(nx.selfloop_edges(I_reset)) # rimuovo i self loop
 
-    if (len(warnings) > 0):
-        print('\n\nWARNING:')
-        for warning in warnings:
-            print(warning)
-        
-        print('\n\n')
+
+os.chdir(path_grafico_attuale)
+logging.basicConfig(filename="log.txt", level=logging.DEBUG, format=None)
+
+logging.info("Lettura file '" + grafo_csv + "' in corso...")
+
+
+if (len(CSV_read_warnings) > 0):
+    print('\n\nWARNING:')
+    logging.warning('\n\nWARNING:')
+    for warning in CSV_read_warnings:
+        print(warning)
+        logging.warning(warning)
+    
+    print('\n\n')
+    logging.warning('\n\n')
+else:
+    logging.info("\nLettura file effettuata senza errori!\n\n")
 
 
 print('\n\n')
-print('Edge list:\n' + str(list(I_reset.edges)) + '\n')
+#print('Edge list:\n' + str(list(I_reset.edges)) + '\n')
 print('Node list:\n' + str(list(I_reset.nodes)) + '\n')
 print('Number of nodes:\n' + str(I_reset.number_of_nodes()) + '\n')
+print('Number of edges:\n' + str(I_reset.number_of_edges()) + '\n')
+
+
+#logging.info('Edge list:\n' + str(list(I_reset.edges)) + '\n')
+logging.info('Node list:\n' + str(list(I_reset.nodes)) + '\n')
+logging.info('Number of nodes:\n' + str(I_reset.number_of_nodes()) + '\n')
+logging.info('Number of edges:\n' + str(I_reset.number_of_edges()) + '\n\n')
 
 
 # I_reset = nx.fast_gnp_random_graph(15, 20, seed=None, directed=False)
@@ -352,8 +400,14 @@ for node in (I_reset.nodes):
 
     I_reset.add_nodes_from([(node, {'state': 'susceptible', 'color': 'blue', 'count_infected': 0, 'temporary_count_infected': 0, 'neighbor_infected': lst, 'recovery_time_left': 0})])
 
+    data_laboratory[node] = [] 
+    data_laboratory[node].append(node) # GUARDA BENE se mettere in str(), guarda data_laboratory su Gephi
 
- 
+
+for i in range (simulations):
+    non_infected_nodes[i] = list(I_reset)
+
+
 
 
 #################################################################
@@ -362,23 +416,43 @@ for node in (I_reset.nodes):
 #                                                               #
 #################################################################
 
+print('\n\n')
+print('######################################################################')
+print('#                                                                    #')
+print('#                         INIZIO SIMULAZIONI                         #')
+print('#                                                                    #')
+print('######################################################################')
+print('\n')
+
+logging.info('######################################################################')
+logging.info('#                                                                    #')
+logging.info('#                         INIZIO SIMULAZIONI                         #')
+logging.info('#                                                                    #')
+logging.info('######################################################################')
+logging.info('\n')
+
 for e in range(simulations):
+
+    print('Inizio simulazione: ' + str(e) + '\n')
+    logging.info('Inizio simulazione: ' + str(e) + '\n')
 
     I = copy.deepcopy(I_reset)
 
+    logging.info('Contagio nodi iniziali...' + '\n')
     infettainit(I, p_init, e)
 
-    '''for element in I.nodes.data() :
-                    print(element)'''
-
-    print("\n\n------------------------------------------------------------------------------------\n\n")
-
+    '''
+    for element in I.nodes.data():
+        logging.info(element)
+    '''
 
     for step in range(t_step):
-        print(str(step))
+        print('Turno ' + str(e) + '.' + str(step) + ':\n') # Vedi se gente capisce meglio "Inizio turno 1 , 2"
+        logging.info('\nTurno ' + str(e) + '.' + str(step) + ':\n')
+
         new_infected_nodes = []
         #print(infected_nodes)
-        random.shuffle(infected_nodes)
+        random.shuffle(infected_nodes) # Facciamo shuffle per dare maggiore casualità alle infezioni, senza avvantaggiare i primi nodi infettati
         #print(infected_nodes)
         copy_infected_nodes = infected_nodes.copy()
 
@@ -400,18 +474,27 @@ for e in range(simulations):
                     
                     ninf = read_neighbor_infected(I, node)
                     ninf[step].append(neighbor)
-                    print('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
+                    #print('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
+                    logging.info('Nodo ' + str(node) + ' ha infettato nodo ' + str(neighbor))
+
                     #print(ninf)
                     I.add_node(node, neighbor_infected=ninf)
 
                     new_infected_nodes.append(neighbor)
-                    
+
+                    try:
+                        non_infected_nodes[e].remove(neighbor)
+                    except ValueError:
+                        pass # Tentato di eliminare un nodo già eliminato in precedenza
+
             if read_recovery_time_left(I, node) >= 1:
                 I.add_node(node, recovery_time_left=(read_recovery_time_left(I, node) - 1))
                 if read_recovery_time_left(I, node) == 0:
                     I.add_node(node, state = 'recovered')
                     I.add_node(node, immunity_time_left = (t_sus + 1))
                     copy_infected_nodes.remove(node)
+
+                    logging.info('Nodo ' + str(node) + ' è guarito')
 
         statistics = {
             "susceptible": 0,
@@ -428,14 +511,22 @@ for e in range(simulations):
                     I.add_node(node, immunity_time_left=(read_immunity_time_left(I, node) - 1))
                     if read_immunity_time_left(I, node) == 0:
                         I.add_node(node, state='susceptible')
-                        I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili    
+                        I.add_node(node, color='blue') #riportiamo al colore iniziale di blu i nodi di nuovo suscettibili
+
+                        logging.info('Nodo ' + str(node) + ' è nuovamente suscettibile')
+
             
             statistics[read_state(I, node)] += 1
             #crea tuple con id nodo e valore temporaneo di nodi infettati nel turno, quindi riazzera count
-            if read_temporary_count_infected(I, node) > 0:
+            
+            if ((read_temporary_count_infected(I, node)) > 0):
                 max_spreader_primo_grado[e].append((node, read_temporary_count_infected(I, node)))
                 #turn_spreader.append((node, read_temporary_count_infected(I, node)))    
                 I.add_node(node, temporary_count_infected=0)
+
+        
+        logging.info('')
+
 
         #sort turn_spreader e si prendono solo i primi 3 nodi di cui fare l'append in lista max_spreader_primo_grado
         #turn_spreader.sort(key=lambda a: a[1], reverse=True)
@@ -473,10 +564,9 @@ for e in range(simulations):
         st_infected = statistics['infected']
         st_recovered = statistics['recovered']
 
-        print_stats(st_susceptible,st_infected, st_recovered)
+        print_stats(st_susceptible, st_infected, st_recovered)
         st_tuple = (st_susceptible, st_infected, st_recovered)
         statistics_graph[e].append(st_tuple)
-        print("\n\n")
 
         infected_nodes = copy_infected_nodes + new_infected_nodes
 
@@ -525,10 +615,12 @@ for e in range(simulations):
     max_spreader_secondo_grado[e] = calc_infected_neighbors(I) 
     #print('\n\n' + str(max_spreader_secondo_grado[e]))
     max_spreader_secondo_grado[e].sort(key=lambda a: a[1], reverse=True)
-    print('\n\n' + str(max_spreader_secondo_grado[e]))
+    #print('\n\n' + str(max_spreader_secondo_grado[e]))
 
+    '''
     if e == 0: # Va cambiata dir solo al primo turno, prima di iniziare a salvare i vari grafici
         os.chdir(path_grafico_attuale)
+    '''
 
     A = my_version_to_agraph(I)
     A.layout(prog='sfdp')
@@ -537,18 +629,43 @@ for e in range(simulations):
     plt.savefig('stat_plot' + str(e) + '.png')
     plt.clf()
 
+    
+    if (e != (simulations - 1)) : print("\n------------------------------------------------------------------------------------\n\n")
+    if (e != (simulations - 1)) : logging.info("\n------------------------------------------------------------------------------------\n\n")
+
+
+
 plt.close() # Dopo aver salvato vari file conviene rilasciare la memoria, anche per evitare bug
 
-# Trova un modo per calcolare max spreader usando i valori ottenuti dalle varie simulazioni
-print('\n\n\n')
+
+print('\n')
+print('######################################################################')
+print('#                                                                    #')
+print('#             FINE SIMULAZIONI - INIZIO CALCOLO SPREADER             #')
+print('#                                                                    #')
+print('######################################################################')
+print('\n')
+
+logging.info('')
+logging.info('######################################################################')
+logging.info('#                                                                    #')
+logging.info('#             FINE SIMULAZIONI - INIZIO CALCOLO SPREADER             #')
+logging.info('#                                                                    #')
+logging.info('######################################################################')
+logging.info('\n')
+
 #print('statistics_graph :\n' + str(statistics_graph) + '\n\n')
-print('max_spreader_primo_grado :\n' + str(max_spreader_primo_grado) + '\n\n')
-print('max_spreader_secondo_grado :\n' + str(max_spreader_secondo_grado) + '\n\n')
+#print('max_spreader_primo_grado :\n' + str(max_spreader_primo_grado) + '\n\n')
+#print('max_spreader_secondo_grado :\n' + str(max_spreader_secondo_grado) + '\n\n')
 
 
 # FINAL max_spreader_primo_grado
+logging.info('Calcolo nodo massimo spreader (R1 e R2) per singola simulazione\n')
 percentages_list = []
+
+counter_simulazioni = -1
 for simulation_value in max_spreader_primo_grado:
+    counter_simulazioni += 1
     sums = defaultdict(int)
     
     total_infections = 0
@@ -556,33 +673,74 @@ for simulation_value in max_spreader_primo_grado:
         sums[i] += k
         total_infections += k
 
-    print('total_infections : ' + str(total_infections))
-    #print('sums.items : ' + str(sums.items()))
-
     sums_list = list(sums.items())
     sums_list.sort(key=lambda a: a[1], reverse=True)
-    print('sums sorted : ' + str(sums_list))
+
+    #print('sums_list : ' + str(sums_list))
+    #missing_nodes = set(list(I_reset)).difference(sums_list)
+    missing_nodes = list(I_reset)
+
+    for tupla in sums_list:
+        missing_nodes.remove(tupla[0])
+
+    #print('missing_nodes' + str(missing_nodes))
+    
+    for node in missing_nodes:
+        sums_list.append((node, 0)) # Ora contiene tutti i valori ocmpresi gli 0
+    #print('sums sorted : ' + str(sums_list))
+
+    print('Simulazione: ' + str(counter_simulazioni) + '\n\n')
+    print('Numero contagi: ' + str(total_infections) + '\n')
+    print('Max Spreader raggio 1:\n' + str(sums_list) + '\n')
+    print('Max Spreader raggio 2:\n' + str(max_spreader_secondo_grado[counter_simulazioni]) + '\n')
+    print('Nodi mai infettati:\n' + str(non_infected_nodes[counter_simulazioni]) + '\n')
+    print('\n-------------------------------------------------------------------------------------\n\n')
+
+    logging.info('Simulazione: ' + str(counter_simulazioni) + '\n\n')
+    logging.info('Numero contagi: ' + str(total_infections) + '\n')
+    logging.info('Max Spreader raggio 1:\n' + str(sums_list) + '\n')
+    logging.info('Max Spreader raggio 2:\n' + str(max_spreader_secondo_grado[counter_simulazioni]) + '\n')
+    logging.info('Nodi mai infettati:\n' + str(non_infected_nodes[counter_simulazioni]) + '\n')
+    logging.info('\n-------------------------------------------------------------------------------------\n\n')
+
 
     for tupla in sums_list:
         tupla_list = list(tupla)
         tupla_list.append(round(100 * (tupla[1]/total_infections), 2))
-        print(tupla_list)
+        #tupla con nodo, nodi contagiati nel turno e percentuale rispetto a contagi tot del turno
+        #print(tupla_list)
         percentages_list.append(tuple(tupla_list))
 
-    print('\n\n')
+    #print('percentages_list : ' + str(percentages_list))
+    #print('\n\n')
+    #logging.info('\n\n')
 
+
+print('Calcolo nodo massimo spreader (R1 e R2) tra tutte le simulazioni (basato su media)\n')
+logging.info('Calcolo nodo massimo spreader (R1 e R2) tra tutte le simulazioni (basato su media)\n')
+
+#crea dizionario che conterrà media delle percentuali di infezione r1 tra le simulazioni
 sums_final = defaultdict(int)
 
 for i, k, p in percentages_list:
     sums_final[i] += p
-    print('sums_final[' + str(i) + '] : ' + str(sums_final[i]))
+    #stampa parziale somma delle percentuali
+    #print('sums_final[' + str(i) + '] : ' + str(sums_final[i]))
 
-print('\n\nsums_final : ' + str(sums_final))
+#stampa della somma delle percentuali
+#print('\n\nsums_final : ' + str(sums_final))
 
+data_laboratory['header'].append('R1 AVG % Infected Nodes')
 for i in sums_final:
     sums_final[i] = round(sums_final[i]/simulations, 2)
+    data_laboratory[i].append(sums_final[i])
 
-print('\n\nsums_final : ' + str(sums_final))  # PERCENTUALE DI NODI DI PRIMO GRADO INFETTATI IN MEDIA (RISPETTO IL TOTALE DEI NODI INFETTATI) TRA LE VARIE SIMULAZIONI
+#print('\n\nsums_final : ' + str(sums_final))  # PERCENTUALE DI NODI DI PRIMO GRADO INFETTATI IN MEDIA (RISPETTO IL TOTALE DEI NODI INFETTATI) TRA LE VARIE SIMULAZIONI
+
+sums_final_list = list(sums_final.items())
+sums_final_list.sort(key=lambda a: a[1], reverse=True)
+print('R1 AVG % Infected Nodes:\n' + str(sums_final_list) + '\n\n')
+logging.info('R1 AVG % Infected Nodes:\n' + str(sums_final_list) + '\n\n')
 
 
 
@@ -599,13 +757,18 @@ for i, k in temp:
 
 #print('total_sum_2d.items : ' + str(total_sum_2d.items()))
 
+data_laboratory['header'].append('R2 AVG Infected Nodes')
 for i in total_sum_2d:
     total_sum_2d[i] = round(total_sum_2d[i]/simulations, 2)
+    data_laboratory[i].append(total_sum_2d[i])
 
 total_sum_2d_list = list(total_sum_2d.items())
 total_sum_2d_list.sort(key=lambda a: a[1], reverse=True)
 
-print('\n\ntotal_sum_2d_list : ' + str(total_sum_2d_list))  # MEDIA DI NODI DI SECONDO GRADO INFETTATI TRA LE VARIE SIMULAZIONI
+print('R2 AVG Infected Nodes :\n' + str(total_sum_2d_list) + '\n\n')  # MEDIA DI NODI DI SECONDO GRADO INFETTATI TRA LE VARIE SIMULAZIONI
+logging.info('R2 AVG Infected Nodes :\n' + str(total_sum_2d_list) + '\n\n')
+
+
 
 
 fig = plt.figure()
@@ -613,10 +776,10 @@ fig = plt.figure()
 # Plot max_spreader_primo_grado
 plt.subplot(2, 1, 1)
 plt.xlabel('Nodes')
-plt.ylabel('AVG % infected nodes')
-plt.title('First degree infected - over all simulations')
+plt.ylabel('AVG % Infected Nodes')
+plt.title('Radius 1 Infection Measure - Over all simulations')
 
-x, y = zip(*sums_final.items())
+x, y = zip(*sums_final_list)
 
 X = np.array(x)
 Y = np.array(y)
@@ -633,8 +796,8 @@ plt.grid()
 # Plot max_spreader_secondo_grado
 plt.subplot(2, 1, 2)
 plt.xlabel('Nodes')
-plt.ylabel('AVG infected nodes')
-plt.title('Second degree infected - over all simulations')
+plt.ylabel('AVG Infected Nodes')
+plt.title('Radius 2 Infection Measure - Over All Simulations')
 
 x, y = zip(*total_sum_2d_list)
 
@@ -646,9 +809,53 @@ plt.scatter(X, Y, 5)
 plt.grid()
 
 fig.tight_layout() # Aggiusta i margini tra i vari sublots
-fig.savefig('MaxSpreader.png')
+fig.savefig('MaxSpreaderMeasure.png')
 
 plt.show()
 #plt.savefig('Second_degree_SUM_infected_nodes.png')
 
 plt.clf()
+
+
+#Calcolo nodi mai infettati in tra tutte le simulazioni 
+res = []
+if simulations > 1:
+    for i in range (simulations):
+        if i == 0:
+            res = list(set(non_infected_nodes[i]).intersection(non_infected_nodes[i+1]))
+        elif i < (simulations - 1):
+            res = list(set(res).intersection(non_infected_nodes[i+1]))
+else:
+    res = non_infected_nodes[0]
+
+print('I nodi che non sono mai stati infettati tra tutte le simulazioni sono:\n' + str(res) + '\n\n')
+logging.info('I nodi che non sono mai stati infettati tra tutte le simulazioni sono:\n' + str(res) + '\n\n')
+
+data_laboratory['header'].append('Ever infected')
+for key in data_laboratory:
+    if key == 'header':
+        continue
+
+    if key in res:
+        data_laboratory[key].append(1)
+        #print(str(key) + ' in res')
+    else:
+        data_laboratory[key].append(0)
+
+#print('Data laboratory:\n' + str(data_laboratory) + '\n\n')
+logging.info('Data laboratory:\n' + str(data_laboratory) + '\n\n')
+
+
+with open('data_laboratory.csv', 'w') as f:
+    write = csv.writer(f)
+    
+    for key in data_laboratory:
+        #print(data_laboratory[key])
+        write.writerow(data_laboratory[key])
+    
+
+print("Nella cartella '" + path_grafico_attuale + "' sono stati salvati i seguenti file:")
+oredered_file = sorted(os.listdir())
+for file in oredered_file:
+    print('  - ' + str(file))
+
