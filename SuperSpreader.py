@@ -336,6 +336,7 @@ t_sus = 3
 t_step = 15
 simulations = 4
 scelta = 0
+scelta_salvataggio = 0
 
 # Variabili di controllo input
 grafo_csv_OK = p_init_OK = p_trans_OK = t_rec_OK = t_sus_OK = t_step_OK = simulations_OK = False
@@ -351,6 +352,10 @@ print('\n\nVuoi impostare i seguenti valori di default per la simulazione o inse
 print(request_p_init + colors.text.yellow + str(p_init) + colors.reset + '\n' + request_p_trans + colors.text.yellow + str(p_trans) + colors.reset + '\n' + request_t_sus + colors.text.yellow + str(t_sus) + colors.reset + '\n' + request_t_rec + colors.text.yellow + str(t_rec) + colors.reset + '\n' + request_t_step + colors.text.yellow + str(t_step) + colors.reset + '\n' + request_simulations + colors.text.yellow + str(simulations) + colors.reset)
 
 scelta = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Default\n> '  + colors.text.yellow + '1' + colors.reset + ' : Imposta manualmente\n\nScelta: ')
+
+print("\n\nVuoi salvare un'immagine del grafo per ogni turno o solo una per simulazione?")
+scelta_salvataggio = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Simulazione\n> '  + colors.text.yellow + '1' + colors.reset + ' : Turno\n\nScelta: ')
+
 
 if scelta == 1:
     # Controllo input
@@ -629,6 +634,11 @@ for e in range(simulations):
         # Aggiornamento degli infetti per il turno successivo
         infected_nodes = copy_infected_nodes + new_infected_nodes
 
+        if (scelta_salvataggio == 1):
+            A = my_version_to_agraph(I)
+            A.layout(prog='sfdp')
+            A.draw('graph_' + str(e) + '_' + str(step) + '.svg')
+
 
     # Calcolo Max Spreader raggio 2
     max_spreader_raggio_2[e] = calc_infected_neighbors(I) 
@@ -682,9 +692,10 @@ for e in range(simulations):
     ###############################################################
 
     # Conversione grafo networkx in pygraphviz
-    A = my_version_to_agraph(I)
-    A.layout(prog='sfdp')
-    A.draw('grafico_finale' + str(e) + '.svg')
+    if (scelta_salvataggio == 0):
+        A = my_version_to_agraph(I)
+        A.layout(prog='sfdp')
+        A.draw('graph_' + str(e) + '.svg')
 
     plt.savefig('stat_plot' + str(e) + '.png')
     plt.clf()
