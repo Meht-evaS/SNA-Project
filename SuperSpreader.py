@@ -155,7 +155,7 @@ def test_input_range(value, control, question, min, max):
         user_value = input(question)
         try:
             user_value = float(user_value)
-            if (user_value < min or user_value > max):
+            if (user_value <= min or user_value > max):
                 raise ValueError()
             else:
                 control = True
@@ -173,10 +173,12 @@ def test_input_int(value, control, question):
         user_value = input(question)
         try:
             user_value = int(user_value)
+            if (user_value <= 0):
+                raise ValueError()
             control = True
             value = user_value
         except ValueError:
-            print(colors.bold + colors.text.red + "ERRORE: " + colors.disable + 'devi inserire un numero intero\n' + colors.reset)
+            print(colors.bold + colors.text.red + "ERRORE: " + colors.disable + 'devi inserire un numero maggiore di 0\n' + colors.reset)
         finally:
             return value, control
     else:
@@ -335,8 +337,9 @@ t_rec = 4
 t_sus = 3
 t_step = 15
 simulations = 4
-scelta = 0
-scelta_salvataggio = 0
+default_choice = 0
+save_choice = 0
+graph_choice = 0
 
 # Variabili di controllo input
 grafo_csv_OK = p_init_OK = p_trans_OK = t_rec_OK = t_sus_OK = t_step_OK = simulations_OK = False
@@ -348,16 +351,17 @@ request_t_rec = "Tempo 't_rec' per passare dallo stato infetto a guarito: "
 request_t_step = "Durata temporale 't_step' di una simulazione: "
 request_simulations = "Numero di simulazioni da effettuare: "
 
+print("\n\nVuoi usare il dataset di default ('" + colors.text.yellow + grafo_csv + colors.reset + "') o importarne uno?")
+graph_choice = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Default\n> '  + colors.text.yellow + '1' + colors.reset + ' : Importa dataset\n\nScelta: ')
+
+if (graph_choice == 0):
+    grafo_csv_OK = True
+
 print('\n\nVuoi impostare i seguenti valori di default per la simulazione o inserirli a mano?\n')
 print(request_p_init + colors.text.yellow + str(p_init) + colors.reset + '\n' + request_p_trans + colors.text.yellow + str(p_trans) + colors.reset + '\n' + request_t_sus + colors.text.yellow + str(t_sus) + colors.reset + '\n' + request_t_rec + colors.text.yellow + str(t_rec) + colors.reset + '\n' + request_t_step + colors.text.yellow + str(t_step) + colors.reset + '\n' + request_simulations + colors.text.yellow + str(simulations) + colors.reset)
+default_choice = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Default\n> '  + colors.text.yellow + '1' + colors.reset + ' : Imposta manualmente\n\nScelta: ')
 
-scelta = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Default\n> '  + colors.text.yellow + '1' + colors.reset + ' : Imposta manualmente\n\nScelta: ')
-
-print("\n\nVuoi salvare un'immagine del grafo per ogni turno o solo una per simulazione?")
-scelta_salvataggio = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Simulazione\n> '  + colors.text.yellow + '1' + colors.reset + ' : Turno\n\nScelta: ')
-
-
-if scelta == 1:
+if default_choice == 1:
     # Controllo input
     while (not (grafo_csv_OK and p_init_OK and p_trans_OK and t_rec_OK and t_sus_OK and t_step_OK and simulations_OK)):
         print('\n\nInserisci i seguenti valori per inizializzare le simulazioni:\n')
@@ -376,6 +380,9 @@ if scelta == 1:
         t_step, t_step_OK = test_input_int(t_step, t_step_OK, request_t_step)
         simulations, simulations_OK = test_input_int(simulations, simulations_OK, request_simulations)
 
+print("\n\nVuoi salvare un'immagine del grafo per ogni turno o solo una per simulazione?")
+save_choice = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.reset + ' : Simulazione\n> '  + colors.text.yellow + '1' + colors.reset + ' : Turno\n\nScelta: ')
+
 
 I_reset = nx.Graph() # Conterrà la copia di I da ripristinare dopo ogni termine simulazione
 I = '' # Conterrà il grafo da utilizzare a ogni simulazione
@@ -383,7 +390,7 @@ I = '' # Conterrà il grafo da utilizzare a ogni simulazione
 CSV_read_warnings = []
 
 data_laboratory = {} # Conterrà le proprietà dei nodi da salvare in CSV
-data_laboratory['header'] = ['Node'] 
+data_laboratory['header'] = ['Id'] 
 
 header = ['source','target']
 infected_nodes = []
@@ -462,7 +469,7 @@ os.chdir(path_grafico_attuale)
 # Set del logger
 logging.basicConfig(filename="log.txt", level=logging.DEBUG, format=None)
 
-if scelta == 0:
+if default_choice == 0:
     logging.info('Per la simulazione sono stati usati i seguenti valori di default:\n')
 else:
     logging.info('Per la simulazione sono stati usati i seguenti valori:\n')
@@ -539,8 +546,8 @@ logging.info('\n')
 
 for e in range(simulations):
 
-    print('Inizio simulazione: ' + str(e) + '\n')
-    logging.info('Inizio simulazione: ' + str(e) + '\n')
+    print('Inizio simulazione: ' + str(e + 1) + '\n')
+    logging.info('Inizio simulazione: ' + str(e + 1) + '\n')
 
     # Riporta il grafo ai valori iniziali
     I = copy.deepcopy(I_reset)
@@ -550,8 +557,8 @@ for e in range(simulations):
 
     # Inizio turni
     for step in range(t_step):
-        print('Turno ' + str(e) + '.' + str(step) + ':\n')
-        logging.info('\nTurno ' + str(e) + '.' + str(step) + ':\n')
+        print('Turno ' + str(e + 1) + '.' + str(step + 1) + ':\n')
+        logging.info('\nTurno ' + str(e + 1) + '.' + str(step + 1) + ':\n')
 
         statistics = {
             "susceptible": 0,
@@ -634,10 +641,10 @@ for e in range(simulations):
         # Aggiornamento degli infetti per il turno successivo
         infected_nodes = copy_infected_nodes + new_infected_nodes
 
-        if (scelta_salvataggio == 1):
+        if (save_choice == 1):
             A = my_version_to_agraph(I)
             A.layout(prog='sfdp')
-            A.draw('graph_' + str(e) + '_' + str(step) + '.svg')
+            A.draw('graph_' + str(e + 1) + '_' + str(step + 1) + '.svg')
 
 
     # Calcolo Max Spreader raggio 2
@@ -657,30 +664,39 @@ for e in range(simulations):
     # Spacchettamento tuple
     y1, y2, y3 = zip(*statistics_graph[e])
 
-    time = np.array(time)
-    y1 = np.array(y1)
-    y2 = np.array(y2)
-    y3 = np.array(y3)
+    try:
+        time = np.array(time)
+        y1 = np.array(y1)
+        y2 = np.array(y2)
+        y3 = np.array(y3)
 
-    time_y1_spline = make_interp_spline(time, y1)
-    time_y2_spline = make_interp_spline(time, y2)
-    time_y3_spline = make_interp_spline(time, y3)
-     
-    # Returns evenly spaced numbers over a specified interval
-    pl_time = np.linspace(time.min(), time.max(), 500)
-    pl_y1 = time_y1_spline(pl_time)
-    pl_y2 = time_y2_spline(pl_time)
-    pl_y3 = time_y3_spline(pl_time)
+        time_y1_spline = make_interp_spline(time, y1)
+        time_y2_spline = make_interp_spline(time, y2)
+        time_y3_spline = make_interp_spline(time, y3)
+         
+        # Returns evenly spaced numbers over a specified interval
+        pl_time = np.linspace(time.min(), time.max(), 500)
+        pl_y1 = time_y1_spline(pl_time)
+        pl_y2 = time_y2_spline(pl_time)
+        pl_y3 = time_y3_spline(pl_time)
 
-    # Plotting the Graph
-    plt.plot(pl_time, pl_y1, label="S", color='b')
-    plt.plot(pl_time, pl_y2, label="I", color='r')
-    plt.plot(pl_time, pl_y3, label="R", color='g')
+        # Plotting the Graph
+        plt.plot(pl_time, pl_y1, label="S", color='b')
+        plt.plot(pl_time, pl_y2, label="I", color='r')
+        plt.plot(pl_time, pl_y3, label="R", color='g')
+    except Exception as ex:
+        print(colors.bold + colors.text.yellow + 'WARNING: ' + colors.disable + "A causa dei parametri impostati, si è verificato un errore mentre si cercava di usare l'interpolazione per il grafico: " + str(ex) + '\nIl grafico verrà mostrato senza interpolazione.\n' + colors.reset)
+        logging.info("WARNING: A causa dei parametri impostati, si è verificato un errore mentre si cercava di usare l'interpolazione per il grafico: " + str(ex) + '\nIl grafico verrà mostrato senza interpolazione.\n')
+
+        plt.plot(time, y1, label="S", color='b')
+        plt.plot(time, y2, label="I", color='r')
+        plt.plot(time, y3, label="R", color='g')
+
 
     #Aggiungiamo label a ascisse e ordinate; nome al modello e legenda. Quindi mostriamo plot
     plt.xlabel('Time Step')
     plt.ylabel('# Nodes')
-    plt.title('SIR Model - Disease Trends - Simulation ' + str(e))
+    plt.title('SIR Model - Disease Trends - Simulation ' + str(e + 1))
     plt.legend()
 
 
@@ -692,12 +708,12 @@ for e in range(simulations):
     ###############################################################
 
     # Conversione grafo networkx in pygraphviz
-    if (scelta_salvataggio == 0):
+    if (save_choice == 0):
         A = my_version_to_agraph(I)
         A.layout(prog='sfdp')
-        A.draw('graph_' + str(e) + '.svg')
+        A.draw('graph_' + str(e + 1) + '.svg')
 
-    plt.savefig('stat_plot' + str(e) + '.png')
+    plt.savefig('stat_plot' + str(e + 1) + '.png')
     plt.clf()
     
     if (e != (simulations - 1)) : print("\n------------------------------------------------------------------------------------\n\n")
@@ -752,14 +768,14 @@ for simulation_value in max_spreader_raggio_1:
         total_infected_from_node_list.append((node, 0))
 
 
-    print('Simulazione: ' + str(counter_simulazioni) + '\n\n')
+    print('Simulazione: ' + str(counter_simulazioni + 1) + '\n\n')
     print('Numero contagi: ' + str(total_infections) + '\n')
     print('Max Spreader raggio 1:\n' + str(total_infected_from_node_list) + '\n')
     print('Max Spreader raggio 2:\n' + str(max_spreader_raggio_2[counter_simulazioni]) + '\n')
     print('Nodi mai infettati:\n' + str(non_infected_nodes[counter_simulazioni]) + '\n')
     print('\n-------------------------------------------------------------------------------------\n\n')
 
-    logging.info('Simulazione: ' + str(counter_simulazioni) + '\n\n')
+    logging.info('Simulazione: ' + str(counter_simulazioni + 1) + '\n\n')
     logging.info('Numero contagi: ' + str(total_infections) + '\n')
     logging.info('Max Spreader raggio 1:\n' + str(total_infected_from_node_list) + '\n')
     logging.info('Max Spreader raggio 2:\n' + str(max_spreader_raggio_2[counter_simulazioni]) + '\n')
@@ -770,7 +786,12 @@ for simulation_value in max_spreader_raggio_1:
     # il totale di nodi infettati all'interno di una simulazione
     for tupla in total_infected_from_node_list:
         tupla_list = list(tupla)
-        tupla_list.append(round(100 * (tupla[1]/total_infections), 2))
+
+        # Evita divisione per 0
+        if (total_infections == 0):
+            tupla_list.append(0)
+        else:
+            tupla_list.append(round(100 * (tupla[1]/total_infections), 2))
         percentages_list.append(tuple(tupla_list))
 
 
