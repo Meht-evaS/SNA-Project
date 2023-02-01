@@ -58,7 +58,7 @@ def my_version_to_agraph(N):
         ) from err
     directed = N.is_directed()
     strict = nx.number_of_selfloops(N) == 0 and not N.is_multigraph()
-    A = pygraphviz.AGraph(name=N.name, strict=strict, directed=directed, overlap='false')
+    A = pygraphviz.AGraph(name=N.name, strict=strict, directed=directed, overlap='false', outputorder="edgesfirst")
 
     # Attributi grafo di default
     A.graph_attr.update(N.graph.get("graph", {}))
