@@ -185,6 +185,18 @@ def test_input_int(value, control, question):
         return value, control
 
 
+def test_input_csv(question): 	
+    error = True
+    
+    while(error):
+        value = input(question)
+        if (not (os.path.isfile(value))):
+            print(colors.bold + colors.text.red + "ERRORE: " + colors.disable + 'non esiste nessun file ' + str(value) + colors.reset + '\n')
+        else:
+            error = False
+    return value
+	
+
 def test_input_scelta(question):
     error = True
     
@@ -342,7 +354,7 @@ save_choice = 0
 graph_choice = 0
 
 # Variabili di controllo input
-grafo_csv_OK = p_init_OK = p_trans_OK = t_rec_OK = t_sus_OK = t_step_OK = simulations_OK = False
+p_init_OK = p_trans_OK = t_rec_OK = t_sus_OK = t_step_OK = simulations_OK = False
 
 request_p_init = "Percentuale 'p_init' di nodi iniziali da infettare (valore tra 0-1): "
 request_p_trans = "Probabilità 'p_trans' di trasmettere la malattia (valore tra 0-1): "
@@ -356,6 +368,8 @@ graph_choice = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.res
 
 if (graph_choice == 0):
     grafo_csv_OK = True
+else:
+    grafo_csv = test_input_csv("\nInserisci il nome del file csv da leggere: ")
 
 print('\n\nVuoi impostare i seguenti valori di default per la simulazione o inserirli a mano?\n')
 print(request_p_init + colors.text.yellow + str(p_init) + colors.reset + '\n' + request_p_trans + colors.text.yellow + str(p_trans) + colors.reset + '\n' + request_t_sus + colors.text.yellow + str(t_sus) + colors.reset + '\n' + request_t_rec + colors.text.yellow + str(t_rec) + colors.reset + '\n' + request_t_step + colors.text.yellow + str(t_step) + colors.reset + '\n' + request_simulations + colors.text.yellow + str(simulations) + colors.reset)
@@ -363,15 +377,8 @@ default_choice = test_input_scelta('\n> '  + colors.text.yellow + '0' + colors.r
 
 if default_choice == 1:
     # Controllo input
-    while (not (grafo_csv_OK and p_init_OK and p_trans_OK and t_rec_OK and t_sus_OK and t_step_OK and simulations_OK)):
+    while (not (p_init_OK and p_trans_OK and t_rec_OK and t_sus_OK and t_step_OK and simulations_OK)):
         print('\n\nInserisci i seguenti valori per inizializzare le simulazioni:\n')
-
-        if (not grafo_csv_OK):
-            grafo_csv = input("Nome del file csv da leggere: ")
-            if (not (os.path.isfile(grafo_csv))):
-                print(colors.bold + colors.text.red + "ERRORE: " + colors.disable + 'non esiste nessun file ' + str(grafo_csv) + colors.reset + '\n')
-            else:
-                grafo_csv_OK = True
 
         p_init, p_init_OK = test_input_range(p_init, p_init_OK, request_p_init, 0, 1)
         p_trans, p_trans_OK = test_input_range(p_trans, p_trans_OK, request_p_trans, 0, 1)    
